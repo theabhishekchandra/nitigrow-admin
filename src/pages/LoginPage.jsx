@@ -29,40 +29,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f1e', position: 'relative', overflow: 'hidden' }}>
-
-      {/* Background pattern */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(168,85,247,0.1) 0%, transparent 40%)', pointerEvents: 'none' }} />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
 
       <div style={{ width: 380, position: 'relative', zIndex: 1 }}>
 
         {/* Lock icon */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 16 }}>🔐</div>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase' }}>Authorized Access Only</div>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--bg-2)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, color: 'var(--muted)' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style={{ color: 'var(--muted)', fontSize: 11, letterSpacing: 3, textTransform: 'uppercase' }}>Authorized Access Only</div>
         </div>
 
         {/* Card */}
-        <div style={{ background: 'rgba(30,27,75,0.8)', borderRadius: 18, padding: '36px 32px', border: '1px solid rgba(99,102,241,0.2)', backdropFilter: 'blur(16px)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6, textAlign: 'center' }}>Admin Sign In</h1>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', marginBottom: 28 }}>NitiGrow Internal Operations</p>
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: '32px 28px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', marginBottom: 4, textAlign: 'center' }}>Sign in</h1>
+          <p style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>Internal operations console</p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '.06em', textTransform: 'uppercase' }}>Email address</label>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, letterSpacing: '.06em', textTransform: 'uppercase' }}>Email address</label>
               <input
                 type="email"
-                placeholder="admin@nitigrow.in"
+                placeholder="you@example.com"
                 value={form.email}
                 onChange={set('email')}
                 required
                 autoComplete="username"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 10 }}
+                className="input"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '.06em', textTransform: 'uppercase' }}>Password</label>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, letterSpacing: '.06em', textTransform: 'uppercase' }}>Password</label>
               <input
                 type="password"
                 placeholder="••••••••"
@@ -70,28 +72,29 @@ export default function LoginPage() {
                 onChange={set('password')}
                 required
                 autoComplete="current-password"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 10 }}
+                className="input"
               />
             </div>
 
             {error && (
-              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                ⚠️ {error}
+              <div style={{ background: 'rgba(192,59,59,0.08)', border: '1px solid rgba(192,59,59,0.2)', borderRadius: 8, padding: '10px 14px', color: 'var(--danger)', fontSize: 13 }}>
+                {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              style={{ background: 'var(--brand)', color: '#fff', padding: '12px', borderRadius: 10, fontSize: 15, fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all .2s' }}
+              className="btn btn-primary"
+              style={{ marginTop: 4, padding: '11px', fontSize: 14 }}
             >
-              {loading ? <><Spinner size={16} /> Authenticating…</> : 'Sign In →'}
+              {loading ? <><Spinner size={16} /> Authenticating…</> : 'Sign in'}
             </button>
           </form>
         </div>
 
-        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.15)', fontSize: 11, marginTop: 20, letterSpacing: '.5px' }}>
-          Monitored & audited access
+        <p style={{ textAlign: 'center', color: 'var(--muted-2)', fontSize: 11, marginTop: 20, letterSpacing: '.5px' }}>
+          Monitored &amp; audited access
         </p>
       </div>
     </div>

@@ -162,7 +162,7 @@ export default function DashboardPage() {
             <div style={{ fontWeight: 700 }}>MRR Growth</div>
             <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600 }}>↑ Live Tracking</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--success)', marginBottom: 2 }}>₹{s.mrr?.toLocaleString('en-IN') || '0'}</div>
+          <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--success)', marginBottom: 2, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>₹{s.mrr?.toLocaleString('en-IN') || '0'}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>Estimated Monthly Revenue</div>
           <Sparkline data={MRR_DATA} color="var(--success)" width={320} height={56} fill />
         </div>

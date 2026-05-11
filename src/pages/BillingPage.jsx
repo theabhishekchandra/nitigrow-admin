@@ -74,7 +74,7 @@ export default function BillingPage() {
 
           <div className="grid-2">
             <Section title="MRR Trend (7 months)">
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--success)', marginBottom: 4 }}>₹{(data.mrr || 0).toLocaleString('en-IN')}</div>
+              <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--success)', marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>₹{(data.mrr || 0).toLocaleString('en-IN')}</div>
               <div style={{ fontSize: 12, color: 'var(--success)', marginBottom: 16, fontWeight: 600 }}>↑ 8.1% vs last month</div>
               <Sparkline data={MRR_DATA} color="var(--success)" width={340} height={72} fill />
             </Section>

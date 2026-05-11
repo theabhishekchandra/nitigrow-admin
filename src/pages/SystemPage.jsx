@@ -137,14 +137,14 @@ export default function SystemPage() {
             <div style={{ display: 'flex', gap: 6 }}>
               {['all', 'ERROR', 'WARN', 'INFO'].map(l => (
                 <button key={l} onClick={() => setLogFilter(l)}
-                  style={{ padding: '5px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: logFilter === l ? levelColor[l] || 'var(--brand)' : 'var(--card)', color: logFilter === l ? '#fff' : 'var(--muted)', cursor: 'pointer' }}>
+                  style={{ padding: '5px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: logFilter === l ? levelColor[l] || 'var(--brand)' : 'var(--card)', color: logFilter === l ? '#FBF8F3' : 'var(--muted)', cursor: 'pointer' }}>
                   {l}
                 </button>
               ))}
             </div>
             <button className="btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>⬇ Download Logs</button>
           </div>
-          <div style={{ background: '#0f172a', borderRadius: 12, padding: 0, overflow: 'hidden', fontFamily: 'monospace', fontSize: 12 }}>
+          <div style={{ background: 'var(--sidebar-bg, #1F1A14)', borderRadius: 12, padding: 0, overflow: 'hidden', fontFamily: 'monospace', fontSize: 12 }}>
             <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="pulse-anim dot dot-green" />
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Live log stream — {filteredLogs.length} entries</span>

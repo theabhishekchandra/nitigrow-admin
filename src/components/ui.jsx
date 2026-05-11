@@ -32,7 +32,7 @@ export const StatCard = ({ label, value, change, color = 'var(--brand)', icon, s
           : <span style={{ opacity: 0.75, color }}>{icon}</span>
       )}
     </div>
-    <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1.1, marginBottom: 4 }}>{value ?? '—'}</div>
+    <div style={{ fontSize: 28, fontWeight: 500, color, lineHeight: 1.1, marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{value ?? '—'}</div>
     {(change !== undefined || sub) && (
       <div style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
         {change !== undefined && (
@@ -58,7 +58,7 @@ export const EmptyState = ({ message = 'No data found', icon }) => (
   <div style={{ padding: '48px 24px', textAlign: 'center' }}>
     <div style={{
       width: 56, height: 56, borderRadius: 16, marginBottom: 16, margin: '0 auto 16px',
-      background: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--accent-soft, var(--brand-bg))', display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: 'var(--brand)',
     }}>
       {icon || (
@@ -156,7 +156,7 @@ export const HealthDot = ({ status = 'gray', size = 10 }) => {
 export const PageHeader = ({ title, subtitle, actions }) => (
   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
     <div>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{title}</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 2, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{title}</h1>
       {subtitle && <p style={{ color: 'var(--muted)', fontSize: 13 }}>{subtitle}</p>}
     </div>
     {actions && <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>{actions}</div>}
@@ -167,8 +167,8 @@ export const PageHeader = ({ title, subtitle, actions }) => (
 export const Section = ({ title, children, action, style: s }) => (
   <div className="card" style={{ marginBottom: 20, ...s }}>
     {title && (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid var(--hair, var(--border))' }}>
+        <div style={{ fontWeight: 600, fontSize: 16 }}>{title}</div>
         {action}
       </div>
     )}
@@ -190,7 +190,7 @@ export const ConfirmModal = ({ open, onClose, onConfirm, title, message, confirm
 /* ── Form field ── */
 export const Field = ({ label, children, required, error }) => (
   <div style={{ marginBottom: 16 }}>
-    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.08em' }}>
       {label}{required && <span style={{ color: 'var(--danger)', marginLeft: 2 }}>*</span>}
     </label>
     {children}

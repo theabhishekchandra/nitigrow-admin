@@ -107,8 +107,8 @@ export default function AnnouncementsPage() {
             </div>
             <div style={{
               borderRadius: 12, padding: '14px 16px', border: '1px solid',
-              borderColor: form.type === 'warning' ? 'rgba(245,158,11,.4)' : form.type === 'feature' ? 'rgba(34,197,94,.4)' : 'rgba(99,102,241,.4)',
-              background: form.type === 'warning' ? 'var(--warn-bg)' : form.type === 'feature' ? 'var(--success-bg)' : 'var(--brand-bg)',
+              borderColor: form.type === 'warning' ? 'rgba(232,169,74,.4)' : form.type === 'feature' ? 'rgba(15,127,94,.4)' : 'rgba(76,110,245,.4)',
+              background: form.type === 'warning' ? 'var(--accent-2-soft, rgba(232,169,74,0.12))' : form.type === 'feature' ? 'var(--brand-soft)' : 'rgba(76,110,245,0.10)',
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ fontSize: 20, flexShrink: 0 }}>{TYPE_ICONS[form.type]}</span>

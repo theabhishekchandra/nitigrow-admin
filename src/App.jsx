@@ -13,6 +13,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import AuditPage from './pages/AuditPage';
 import SystemPage from './pages/SystemPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
+import FeatureSpecPage from './pages/FeatureSpecPage';
 
 const Guard = ({ children }) => {
   const token = useAdminStore(s => s.token);
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="system"        element={<SystemPage />} />
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="audit"         element={<AuditPage />} />
+          <Route path="feature-spec"  element={<FeatureSpecPage />} />
           <Route path="*"             element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

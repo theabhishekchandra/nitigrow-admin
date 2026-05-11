@@ -85,12 +85,12 @@ export default function Layout() {
       <aside style={{ width: sw, background: 'var(--sidebar)', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'width .22s cubic-bezier(.4,0,.2,1)', overflow: 'hidden' }}>
 
         {/* Logo */}
-        <div style={{ padding: '18px 0', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ padding: '18px 0', borderBottom: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
           {sidebarCollapsed
-            ? <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 15, color: 'var(--brand)' }}>NG</div>
+            ? <div style={{ textAlign: 'center', fontWeight: 500, fontSize: 16, color: 'var(--accent-2)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>NG</div>
             : <div style={{ padding: '0 20px' }}>
-                <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--brand)', letterSpacing: '-.5px' }}>NitiGrow</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 }}>Admin Panel</div>
+                <div style={{ fontWeight: 500, fontSize: 22, color: 'var(--accent-2)', letterSpacing: '-0.01em', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)' }}>NitiGrow</div>
+                <div style={{ fontSize: 10, color: 'rgba(245,239,223,0.36)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 }}>Admin Panel</div>
               </div>
           }
         </div>
@@ -104,9 +104,9 @@ export default function Layout() {
                 gap: 10,
                 padding: sidebarCollapsed ? '11px 0' : '10px 14px',
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.48)',
-                background: isActive ? 'rgba(99,102,241,0.22)' : 'transparent',
-                borderLeft: isActive ? '3px solid var(--brand)' : '3px solid transparent',
+                color: isActive ? 'var(--sidebar-active-ink)' : 'var(--sidebar-text)',
+                background: isActive ? 'var(--sidebar-active)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--accent-2)' : '3px solid transparent',
                 borderRight: '3px solid transparent',
                 fontSize: 13.5,
                 fontWeight: isActive ? 600 : 400,
@@ -123,7 +123,7 @@ export default function Layout() {
         </nav>
 
         {/* Admin info + logout */}
-        <div style={{ padding: sidebarCollapsed ? '12px 0' : '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ padding: sidebarCollapsed ? '12px 0' : '12px 14px', borderTop: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
           {sidebarCollapsed
             ? <button onClick={() => { logout(); navigate('/login'); }} title="Sign Out"
                 style={{ width: '100%', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: 8, border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
@@ -131,12 +131,12 @@ export default function Layout() {
               </button>
             : <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, color: '#fff' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, color: '#FBF8F3' }}>
                     {admin?.name?.[0]?.toUpperCase() || 'A'}
                   </div>
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{admin?.name || 'Admin'}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'capitalize' }}>{(admin?.role || 'super_admin').replace('_', ' ')}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sidebar-active-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{admin?.name || 'Admin'}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(245,239,223,0.36)', textTransform: 'capitalize' }}>{(admin?.role || 'super_admin').replace('_', ' ')}</div>
                   </div>
                 </div>
                 <button onClick={() => { logout(); navigate('/login'); }}
@@ -165,7 +165,7 @@ export default function Layout() {
             style={{ flex: 1, maxWidth: 380, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--muted)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, cursor: 'text', textAlign: 'left' }}>
             <Icon d={ICONS.search} size={14} />
             <span style={{ flex: 1 }}>Search clients, invoices, tickets…</span>
-            <kbd style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', fontSize: 11, flexShrink: 0 }}>⌘K</kbd>
+            <kbd style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', fontSize: 11, flexShrink: 0, fontFamily: 'var(--f-mono, ui-monospace, "SF Mono", Menlo, monospace)' }}>⌘K</kbd>
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
@@ -196,7 +196,7 @@ export default function Layout() {
                     {notifications.length === 0
                       ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>All caught up</div>
                       : notifications.map((n) => (
-                          <div key={n.id} style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'var(--brand-bg)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                          <div key={n.id} style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'var(--accent-2-soft, var(--brand-bg))', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--brand)' }}>
                               <Icon d={ICONS[NOTIF_ICON_MAP[n.type]] || ICONS.bell} size={13} />
                             </div>
@@ -214,7 +214,7 @@ export default function Layout() {
             </div>
 
             {/* Admin avatar */}
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FBF8F3' }}>
               {admin?.name?.[0]?.toUpperCase() || 'A'}
             </div>
           </div>

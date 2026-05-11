@@ -55,7 +55,7 @@ export default function WhatsAppPage() {
         ].map(({ label, count, color, cls }) => (
           <div key={label} className="card card-sm" style={{ borderLeft: `3px solid ${color}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{label}</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color }}>{count}</div>
+            <div style={{ fontSize: 32, fontWeight: 500, color, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{count}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>client{count !== 1 ? 's' : ''}</div>
           </div>
         ))}
@@ -74,7 +74,7 @@ export default function WhatsAppPage() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {['all', 'GREEN', 'YELLOW', 'RED'].map(f => (
               <button key={f} onClick={() => setFilterQ(f)}
-                style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: filterQ === f ? 'var(--brand)' : 'var(--card)', color: filterQ === f ? '#fff' : 'var(--muted)', cursor: 'pointer' }}>
+                style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: filterQ === f ? 'var(--brand)' : 'var(--card)', color: filterQ === f ? '#FBF8F3' : 'var(--muted)', cursor: 'pointer' }}>
                 {f === 'all' ? 'All' : f}
               </button>
             ))}
@@ -131,7 +131,7 @@ export default function WhatsAppPage() {
               { label: 'Paused', count: MOCK_TEMPLATES.filter(t => t.status === 'paused').length, color: 'var(--muted)' },
             ].map(({ label, count, color }) => (
               <div key={label} className="card card-sm" style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color }}>{count}</div>
+                <div style={{ fontSize: 30, fontWeight: 500, color, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{count}</div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{label}</div>
               </div>
             ))}
@@ -162,11 +162,11 @@ export default function WhatsAppPage() {
           <div className="grid-3" style={{ marginBottom: 20 }}>
             <div className="card card-sm">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Errors (last 24h)</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--danger)' }}>{MOCK_API_ERRORS.length}</div>
+              <div style={{ fontSize: 30, fontWeight: 500, color: 'var(--danger)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{MOCK_API_ERRORS.length}</div>
             </div>
             <div className="card card-sm">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Rate Limit Remaining</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--success)' }}>87%</div>
+              <div style={{ fontSize: 30, fontWeight: 500, color: 'var(--success)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>87%</div>
             </div>
             <div className="card card-sm">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Last Webhook</div>

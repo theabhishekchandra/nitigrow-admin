@@ -93,7 +93,7 @@ export default function SupportPage() {
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', paddingBottom: 10 }}>
               {[['all', 'All'], ['open', 'Open'], ['unassigned', 'Unassigned'], ['urgent', 'Urgent'], ['resolved', 'Resolved']].map(([k, l]) => (
                 <button key={k} onClick={() => setFilter(k)}
-                  style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', background: filter === k ? 'var(--brand)' : 'transparent', color: filter === k ? '#fff' : 'var(--muted)', cursor: 'pointer' }}>
+                  style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', background: filter === k ? 'var(--brand)' : 'transparent', color: filter === k ? '#FBF8F3' : 'var(--muted)', cursor: 'pointer' }}>
                   {l}
                 </button>
               ))}
@@ -104,7 +104,7 @@ export default function SupportPage() {
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {filtered.map(c => (
               <div key={c.id} onClick={() => setSelected(c)}
-                style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected?.id === c.id ? 'var(--brand-bg)' : c.unread ? 'rgba(99,102,241,0.04)' : 'transparent', transition: 'background .1s' }}>
+                style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected?.id === c.id ? 'var(--brand-bg)' : c.unread ? 'var(--accent-2-soft, rgba(232,169,74,0.10))' : 'transparent', transition: 'background .1s' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 14 }}>{CH_ICON[c.channel]}</span>
@@ -156,8 +156,8 @@ export default function SupportPage() {
                   <div key={i} style={{ display: 'flex', justifyContent: m.from === 'client' ? 'flex-start' : 'flex-end' }}>
                     <div style={{
                       maxWidth: '72%', padding: '10px 14px', borderRadius: m.from === 'client' ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
-                      background: m.from === 'client' ? 'var(--bg)' : m.from === 'bot' ? 'var(--info-bg)' : 'var(--brand)',
-                      color: m.from === 'agent' ? '#fff' : 'var(--text)', fontSize: 13,
+                      background: m.from === 'client' ? 'var(--bg-2)' : m.from === 'bot' ? 'rgba(76,110,245,0.10)' : 'var(--brand)',
+                      color: m.from === 'agent' ? '#FBF8F3' : 'var(--text)', fontSize: 13,
                     }}>
                       {m.from !== 'client' && (
                         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.7 }}>

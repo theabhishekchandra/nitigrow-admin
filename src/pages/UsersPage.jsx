@@ -14,13 +14,13 @@ export default function UsersPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700 }}>All Users</h2>
-        <input placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} />
+        <h1 style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontSize: 30, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text)' }}>All Users</h1>
+        <input placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} className="input" style={{ width: 280 }} />
       </div>
-      <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+            <tr style={{ background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
               {['Name', 'Email', 'Role', 'Tenant', 'Joined'].map(h => (
                 <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>{h}</th>
               ))}
@@ -36,7 +36,7 @@ export default function UsersPage() {
                 <td style={{ padding: '10px 14px', fontWeight: 500 }}>{u.name}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{u.email}</td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ background: 'var(--brand)22', color: 'var(--brand)', padding: '2px 8px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>{u.role}</span>
+                  <span className="badge badge-green">{u.role}</span>
                 </td>
                 <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{u.tenantId?.businessName || u.tenantId}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--muted)' }}>{new Date(u.createdAt).toLocaleDateString('en-IN')}</td>

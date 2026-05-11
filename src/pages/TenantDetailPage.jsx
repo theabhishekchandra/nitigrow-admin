@@ -107,7 +107,7 @@ export default function TenantDetailPage() {
         ].map(({ label, value, color }) => (
           <div key={label} className="card card-sm" style={{ borderLeft: `3px solid ${color}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{label}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color }}>{value ?? '—'}</div>
+            <div style={{ fontSize: 28, fontWeight: 500, color, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{value ?? '—'}</div>
           </div>
         ))}
       </div>
@@ -186,7 +186,7 @@ export default function TenantDetailPage() {
 
       {activeTab === 'billing' && (
         <Section title="Subscription Details">
-          <div style={{ padding: 20, background: 'var(--card-bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
+          <div style={{ padding: 20, background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               <div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>RAZORPAY ID</div>

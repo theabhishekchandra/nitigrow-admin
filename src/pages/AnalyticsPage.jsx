@@ -30,9 +30,9 @@ const adoptionColor = (pct) => pct >= 60 ? 'var(--success)' : pct >= 30 ? 'var(-
 const cohortBg = (val) => {
   if (val === '—') return 'transparent';
   const n = parseInt(val);
-  if (n >= 80) return 'rgba(34,197,94,0.25)';
-  if (n >= 60) return 'rgba(245,158,11,0.2)';
-  return 'rgba(239,68,68,0.15)';
+  if (n >= 80) return 'rgba(15,127,94,0.18)';
+  if (n >= 60) return 'rgba(232,169,74,0.20)';
+  return 'rgba(192,59,59,0.14)';
 };
 
 export default function AnalyticsPage() {
@@ -68,14 +68,14 @@ export default function AnalyticsPage() {
 
           <div className="grid-2">
             <Section title="New Signups (Last 30 days)">
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--brand)', marginBottom: 4 }}>26 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>this month</span></div>
+              <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--brand)', marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>26 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
               <div style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, marginBottom: 16 }}>↑ 8 more vs last month</div>
               <MiniBarChart data={SIGNUP_DATA.map((v, i) => ({ label: i, value: v }))} color="var(--brand)" height={72} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}><span>30 days ago</span><span>Today</span></div>
             </Section>
 
             <Section title="MRR Trend (7 months)">
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--success)', marginBottom: 4 }}>₹1,87,400 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>this month</span></div>
+              <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--success)', marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>₹1,87,400 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
               <div style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, marginBottom: 16 }}>↑ ₹2,400 vs last month (+1.3%)</div>
               <Sparkline data={MRR_DATA} color="var(--success)" width={360} height={72} fill />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}><span>Jul 2024</span><span>Jan 2025</span></div>
@@ -229,9 +229,9 @@ export default function AnalyticsPage() {
               </tbody>
             </table>
             <div style={{ marginTop: 16, display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(34,197,94,0.25)', borderRadius: 2, display: 'inline-block' }} /> ≥80% retained</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(245,158,11,0.2)', borderRadius: 2, display: 'inline-block' }} /> 60–79%</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(239,68,68,0.15)', borderRadius: 2, display: 'inline-block' }} /> &lt;60%</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(15,127,94,0.18)', borderRadius: 2, display: 'inline-block' }} /> ≥80% retained</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(232,169,74,0.20)', borderRadius: 2, display: 'inline-block' }} /> 60–79%</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(192,59,59,0.14)', borderRadius: 2, display: 'inline-block' }} /> &lt;60%</span>
             </div>
           </div>
         </div>

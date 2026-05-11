@@ -184,7 +184,7 @@ export default function TenantsPage() {
             <button className="btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
             {Array.from({ length: totalPages }, (_, i) => (
               <button key={i} onClick={() => setPage(i + 1)}
-                style={{ padding: '5px 10px', borderRadius: 6, fontSize: 13, fontWeight: page === i + 1 ? 700 : 400, background: page === i + 1 ? 'var(--brand)' : 'var(--card)', color: page === i + 1 ? '#fff' : 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                style={{ padding: '5px 10px', borderRadius: 6, fontSize: 13, fontWeight: page === i + 1 ? 700 : 400, background: page === i + 1 ? 'var(--brand)' : 'var(--card)', color: page === i + 1 ? '#FBF8F3' : 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                 {i + 1}
               </button>
             ))}
