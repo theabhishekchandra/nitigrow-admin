@@ -9,6 +9,7 @@ import TenantDetailPage from './pages/TenantDetailPage';
 import BillingPage from './pages/BillingPage';
 import WhatsAppPage from './pages/WhatsAppPage';
 import SupportPage from './pages/SupportPage';
+import LandingLeadsPage from './pages/LandingLeadsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import AuditPage from './pages/AuditPage';
 import SystemPage from './pages/SystemPage';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="tenants/:id"   element={<TenantDetailPage />} />
           <Route path="whatsapp"      element={<WhatsAppPage />} />
           <Route path="support"       element={<SupportPage />} />
+          <Route path="leads"         element={<LandingLeadsPage />} />
           <Route path="billing"       element={<BillingPage />} />
           <Route path="analytics"     element={<AnalyticsPage />} />
           <Route path="system"        element={<SystemPage />} />
