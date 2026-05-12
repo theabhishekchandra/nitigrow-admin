@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Badge, PageHeader, EmptyState, Spinner, Field } from '../components/ui';
 import api from '../services/api';
+import { useAdminStore } from '../store/adminStore';
+import { connectAdminSocket } from '../services/socket';
 
 const STATUS_COLOR = { new: 'yellow', replied: 'blue', closed: 'green' };
 const TOPIC_LABEL = {
@@ -45,6 +47,7 @@ const fmtTime = (iso) => {
 };
 
 export default function LandingLeadsPage() {
+  const token = useAdminStore((s) => s.token);
   const [submissions, setSubmissions] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -69,6 +72,34 @@ export default function LandingLeadsPage() {
   };
 
   useEffect(() => { fetchList(); }, []);
+
+  // Live updates — a new submission arrives, or another admin tab flips
+  // status. Just re-pull the list; the page is small enough that a full
+  // refetch is simpler than reconciling a stream.
+  useEffect(() => {
+    if (!token) return undefined;
+    const sock = connectAdminSocket(token);
+    const refetch = () => fetchList();
+    sock.on('lead.new', refetch);
+    sock.on('lead.updated', refetch);
+    return () => {
+      sock.off('lead.new', refetch);
+      sock.off('lead.updated', refetch);
+    };
+  }, [token]);
+
+  // Count duplicates by email (lower-cased). Shown as a "+N more" badge in the
+  // detail header so an admin can see at a glance this lead has been bothering
+  // them before.
+  const dupCountByEmail = useMemo(() => {
+    const m = new Map();
+    submissions.forEach((s) => {
+      const k = s.email?.toLowerCase();
+      if (!k) return;
+      m.set(k, (m.get(k) || 0) + 1);
+    });
+    return m;
+  }, [submissions]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return submissions;
@@ -100,6 +131,14 @@ export default function LandingLeadsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // When an admin clicks "Reply by email" or WhatsApp, auto-flip the status
+  // from `new` to `replied` so the inbox doesn't keep nagging them. Fire-and-
+  // forget — the mailto/wa link fires on its own and we don't want to block it.
+  const markReplied = () => {
+    if (!selected || selected.status !== 'new') return;
+    updateSubmission({ status: 'replied' });
   };
 
   const FILTERS = [
@@ -212,6 +251,11 @@ export default function LandingLeadsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                       <Badge color={TOPIC_COLOR[selected.topic] || 'gray'}>{TOPIC_LABEL[selected.topic] || selected.topic}</Badge>
                       <Badge color={STATUS_COLOR[selected.status] || 'gray'}>{selected.status}</Badge>
+                      {dupCountByEmail.get(selected.email?.toLowerCase()) > 1 && (
+                        <Badge color="yellow">
+                          {dupCountByEmail.get(selected.email.toLowerCase())} from this email
+                        </Badge>
+                      )}
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {fmtTime(selected.createdAt)}</span>
                     </div>
                   </div>
@@ -227,11 +271,11 @@ export default function LandingLeadsPage() {
                     <option value="replied">Replied</option>
                     <option value="closed">Closed</option>
                   </select>
-                  <a className="btn-primary btn-sm" href={`mailto:${selected.email}?subject=Re: NitiGrow ${TOPIC_LABEL[selected.topic] || ''}`} style={{ textDecoration: 'none' }}>
+                  <a className="btn-primary btn-sm" href={`mailto:${selected.email}?subject=Re: NitiGrow ${TOPIC_LABEL[selected.topic] || ''}`} onClick={markReplied} style={{ textDecoration: 'none' }}>
                     Reply by email
                   </a>
                   {selected.phone && (
-                    <a className="btn-ghost btn-sm" href={`https://wa.me/${selected.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    <a className="btn-ghost btn-sm" href={`https://wa.me/${selected.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={markReplied} style={{ textDecoration: 'none' }}>
                       WhatsApp
                     </a>
                   )}

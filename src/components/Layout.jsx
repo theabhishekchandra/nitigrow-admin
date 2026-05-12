@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../store/adminStore';
 import api from '../services/api';
+import { connectAdminSocket, disconnectAdminSocket } from '../services/socket';
 import CommandBar from './CommandBar';
 import PlatformStatus from './PlatformStatus';
 import { Modal } from './ui';
@@ -121,7 +122,7 @@ const fmtNotifTime = (iso) => {
 
 export default function Layout() {
   const store = useAdminStore();
-  const { admin, logout, theme, toggleTheme, sidebarCollapsed, toggleSidebar, openCommandBar, notifications, unreadCount, setNotifications, markAllRead } = store;
+  const { admin, token, logout, theme, toggleTheme, sidebarCollapsed, toggleSidebar, openCommandBar, notifications, unreadCount, setNotifications, markAllRead } = store;
   const language = store.language;
   const navigate = useNavigate();
   const [showNotifs, setShowNotifs] = useState(false);
@@ -153,6 +154,25 @@ export default function Layout() {
     const t = setInterval(fetchNotifs, NOTIF_POLL_MS);
     return () => clearInterval(t);
   }, [fetchNotifs]);
+
+  // Live push: when the API emits `lead.new` or `lead.updated` to the admins
+  // room, refresh the bell immediately. The 60s poll above is the fallback
+  // for sockets that drop or never connect (e.g. blocked WS in some firewalls).
+  useEffect(() => {
+    if (!token) return undefined;
+    const sock = connectAdminSocket(token);
+    const onNew = () => fetchNotifs();
+    const onUpd = () => fetchNotifs();
+    sock.on('lead.new', onNew);
+    sock.on('lead.updated', onUpd);
+    return () => {
+      sock.off('lead.new', onNew);
+      sock.off('lead.updated', onUpd);
+    };
+  }, [token, fetchNotifs]);
+
+  // Tear the socket down on logout so a re-login starts fresh.
+  useEffect(() => () => disconnectAdminSocket(), []);
 
   const handleMarkAllRead = useCallback(() => {
     const seen = loadSeenNotifs();
