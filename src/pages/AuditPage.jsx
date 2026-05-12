@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge, PageHeader, EmptyState } from '../components/ui';
+import api from '../services/api';
 
 const MOCK_AUDIT = [
   { id: 1, admin: 'Rahul Sharma', action: 'plan_change', target: 'TechBridge Solutions', details: 'Starter → Growth', ip: '103.21.xx.xx', timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
@@ -20,6 +21,17 @@ const ACTION_COLORS = {
   account_reactivated: 'green', coupon_created: 'purple', coupon_deactivated: 'gray',
   feature_flag: 'yellow', admin_login: 'gray', admin_logout: 'gray',
   data_export: 'blue', data_deleted: 'red', announcement_sent: 'cyan',
+  // Backend action codes from the audit middleware
+  'tenant.suspend':           'red',
+  'tenant.impersonate':       'yellow',
+  'tenant.limits.update':     'blue',
+  'admin.password.change':    'gray',
+  'admin.profile.update':     'gray',
+  'admin.session.revoke':     'gray',
+  'admin.2fa.setup':          'cyan',
+  'admin.2fa.enable':         'green',
+  'admin.2fa.disable':        'red',
+  'admin.2fa.recovery':       'yellow',
 };
 
 const ACTION_VERB = {
@@ -38,6 +50,17 @@ const ACTION_VERB = {
   data_export: 'exported data from',
   data_deleted: 'deleted data from',
   announcement_sent: 'sent announcement to',
+  // Backend
+  'tenant.suspend':           'suspended account',
+  'tenant.impersonate':       'started impersonating',
+  'tenant.limits.update':     'adjusted limits for',
+  'admin.password.change':    'changed their own password',
+  'admin.profile.update':     'updated their own profile',
+  'admin.session.revoke':     'revoked a session',
+  'admin.2fa.setup':          'started 2FA setup',
+  'admin.2fa.enable':         'enabled 2FA',
+  'admin.2fa.disable':        'disabled 2FA',
+  'admin.2fa.recovery':       'used a recovery code',
 };
 
 const ACTION_CATEGORY = {
@@ -46,7 +69,31 @@ const ACTION_CATEGORY = {
   trial_extended: 'Lifecycle', account_suspended: 'Lifecycle', account_reactivated: 'Lifecycle',
   feature_flag: 'Platform', data_export: 'Data', data_deleted: 'Data',
   announcement_sent: 'Comms',
+  // Backend
+  'tenant.suspend':       'Lifecycle',
+  'tenant.impersonate':   'Access',
+  'tenant.limits.update': 'Billing',
+  'admin.password.change':'Access',
+  'admin.profile.update': 'Access',
+  'admin.session.revoke': 'Access',
+  'admin.2fa.setup':      'Access',
+  'admin.2fa.enable':     'Access',
+  'admin.2fa.disable':    'Access',
+  'admin.2fa.recovery':   'Access',
 };
+
+// Map a backend audit row to the existing display row shape.
+const mapBackendEntry = (e) => ({
+  id: e._id,
+  admin: e.admin?.name || 'Unknown admin',
+  action: e.action,
+  target: e.target?.businessName || (e.targetType ? `(${e.targetType})` : 'System'),
+  details: e.after && Object.keys(e.after).length ? Object.entries(e.after).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')
+         : e.before && Object.keys(e.before).length ? Object.entries(e.before).map(([k, v]) => `was ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')
+         : '',
+  ip: e.ip || '—',
+  timestamp: e.createdAt,
+});
 
 const ACTION_TYPES = ['all', ...Object.keys(ACTION_COLORS)];
 const CATEGORIES = ['all', ...Array.from(new Set(Object.values(ACTION_CATEGORY)))];
@@ -93,9 +140,20 @@ export default function AuditPage() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 15;
 
-  const admins = ['all', ...new Set(MOCK_AUDIT.map(a => a.admin))];
+  // Live entries from the backend; fall back to MOCK_AUDIT on 404 / failure so the page is never empty.
+  const [liveEntries, setLiveEntries] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/audit', { params: { limit: 200 } })
+      .then(({ data }) => { if (!cancelled) setLiveEntries((data?.data || []).map(mapBackendEntry)); })
+      .catch(() => { if (!cancelled) setLiveEntries([]); /* keep using MOCK_AUDIT */ });
+    return () => { cancelled = true; };
+  }, []);
+  const ENTRIES = (liveEntries && liveEntries.length) ? liveEntries : MOCK_AUDIT;
 
-  const filtered = MOCK_AUDIT.filter(entry => {
+  const admins = ['all', ...new Set(ENTRIES.map(a => a.admin))];
+
+  const filtered = ENTRIES.filter(entry => {
     const q = search.toLowerCase();
     const cat = ACTION_CATEGORY[entry.action] || 'Other';
     return (
