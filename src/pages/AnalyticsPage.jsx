@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { PageHeader, StatCard, MiniBarChart, Sparkline, Section } from '../components/ui';
+import { PageHeader, MiniBarChart, Sparkline, Section } from '../components/ui';
 
 const SIGNUP_DATA = [2, 4, 3, 6, 5, 8, 7, 9, 6, 11, 8, 12, 10, 14, 11, 9, 13, 16, 12, 18, 14, 17, 15, 20, 18, 22, 19, 24, 21, 26];
 const MSG_DATA    = [28400, 31200, 29800, 35100, 33600, 38900, 37200, 42100, 40300, 46800, 44200, 51300, 48700, 55200, 52400, 49800, 57100, 63400, 59800, 68200, 64500, 71900, 68300, 76100, 72400, 81200, 77600, 85900, 82100, 91400];
 const MRR_DATA    = [142000, 155000, 163000, 171000, 178000, 185000, 187400];
+const TENANTS_DATA = [29, 31, 33, 35, 38, 41, 43, 45, 47, 49, 51, 53, 54, 55];
+const CSAT_DATA = [88, 90, 91, 89, 92, 93, 92, 94];
 
 const COHORT = [
   { month: 'Jul 2024', m0: '100%', m1: '82%', m2: '74%', m3: '68%', m4: '62%', m5: '58%' },
@@ -25,6 +27,19 @@ const FEATURES = [
   { name: 'Scheduled Campaigns', using: 22, total: 55, avgUses: 4.3, lastUsed: 'Today' },
 ];
 
+const TOP_PLANS = [
+  { plan: 'Growth',     mrr: 74970, color: 'var(--brand)' },
+  { plan: 'Pro',        mrr: 59988, color: 'var(--accent)' },
+  { plan: 'Enterprise', mrr: 33461, color: 'var(--purple)' },
+  { plan: 'Starter',    mrr: 18981, color: 'var(--accent-2)' },
+];
+
+const AGENT_LEADERBOARD = [
+  { name: 'Priya Sharma',  role: 'Support Lead', resolved: 87, csat: 96 },
+  { name: 'Rahul Mehta',   role: 'Support',      resolved: 64, csat: 92 },
+  { name: 'Ananya Iyer',   role: 'Support',      resolved: 51, csat: 94 },
+];
+
 const adoptionColor = (pct) => pct >= 60 ? 'var(--success)' : pct >= 30 ? 'var(--warn)' : 'var(--danger)';
 
 const cohortBg = (val) => {
@@ -35,78 +50,192 @@ const cohortBg = (val) => {
   return 'rgba(192,59,59,0.14)';
 };
 
+// Display KPI tile shared with Dashboard / Billing.
+const KPI = ({ label, value, delta, deltaTone = 'pos', sub, tone = 'brand', spark, sparkColor }) => {
+  const valueColor = tone === 'danger' ? 'var(--danger)' : tone === 'warn' ? 'var(--warn)' : tone === 'success' ? 'var(--success)' : 'var(--text)';
+  const deltaColor = deltaTone === 'neg' ? 'var(--danger)' : 'var(--success)';
+  return (
+    <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 124 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{label}</div>
+        {delta && <span style={{ fontSize: 11, fontWeight: 600, color: deltaColor }}>{delta}</span>}
+      </div>
+      <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.01em', color: valueColor }}>{value ?? '—'}</div>
+      {sub && <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{sub}</div>}
+      {spark && spark.length > 1 && (
+        <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+          <Sparkline data={spark} color={sparkColor || 'var(--brand)'} width={220} height={32} fill />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RANGE_OPTIONS = [
+  { value: 'today', label: 'Today' },
+  { value: '7d',    label: '7d' },
+  { value: '30d',   label: '30d' },
+  { value: '90d',   label: '90d' },
+  { value: 'custom', label: 'Custom' },
+];
+
 export default function AnalyticsPage() {
   const [tab, setTab] = useState('growth');
+  const [range, setRange] = useState('30d');
+
+  const maxPlanMRR = Math.max(...TOP_PLANS.map(p => p.mrr));
 
   return (
     <div className="animate-in">
-      <PageHeader title="Analytics & Reporting" subtitle="Platform growth, feature adoption, message volume, cohort retention" />
+      <PageHeader
+        title="Analytics & Reporting"
+        subtitle="Growth cockpit — tenants, MRR, retention, feature adoption"
+        actions={
+          <>
+            <button className="btn-ghost btn-sm">↓ CSV</button>
+            <button className="btn-ghost btn-sm">↓ PDF</button>
+          </>
+        }
+      />
+
+      {/* ── Date range chip group ─────────────────────────────────────────── */}
+      <div style={{ display: 'inline-flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 999, padding: 3, marginBottom: 18 }}>
+        {RANGE_OPTIONS.map(r => (
+          <button
+            key={r.value}
+            onClick={() => setRange(r.value)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: range === r.value ? 600 : 500,
+              background: range === r.value ? 'var(--card)' : 'transparent',
+              color: range === r.value ? 'var(--text)' : 'var(--muted)',
+              boxShadow: range === r.value ? 'var(--shadow-sm)' : 'none',
+              border: 'none',
+            }}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 4 KPI hero tiles ─────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
+        <KPI label="Active tenants" value="55" delta="↑ 12% 30d" deltaTone="pos" sub="Paid + trial" spark={TENANTS_DATA} sparkColor="var(--brand)" />
+        <KPI label="Signups (period)" value="26" delta="↑ 8 vs last" deltaTone="pos" sub="New onboards" spark={SIGNUP_DATA.slice(-14)} sparkColor="var(--accent-2)" />
+        <KPI label="Churn %" value="3.6%" delta="↓ 0.8pt" deltaTone="pos" sub="30-day rolling" tone="danger" />
+        <KPI label="CSAT" value="94%" delta="↑ 2pt" deltaTone="pos" sub="Trailing 8 weeks" tone="success" spark={CSAT_DATA} sparkColor="var(--success)" />
+      </div>
 
       <div className="tab-list">
-        {[['growth', '📈 Growth'], ['features', '🧩 Feature Adoption'], ['messages', '💬 Message Volume'], ['cohort', '🔄 Cohort Retention']].map(([k, l]) => (
+        {[['growth', 'Growth'], ['features', 'Feature Adoption'], ['messages', 'Message Volume'], ['cohort', 'Cohort Retention']].map(([k, l]) => (
           <button key={k} className={`tab-btn${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {/* Growth */}
+      {/* ── Growth tab ──────────────────────────────────────────────────── */}
       {tab === 'growth' && (
         <div>
-          <div className="grid-auto" style={{ marginBottom: 24 }}>
-            <StatCard label="Total Clients" value="55" color="var(--brand)" change={12} sub="vs last month"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>} />
-            <StatCard label="MRR" value="₹1,87,400" color="var(--success)" change={8}
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} />
-            <StatCard label="Churn Rate" value="3.6%" color="var(--danger)" change={-18} sub="vs last month"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>} />
-            <StatCard label="Trial Conversion" value="68%" color="var(--purple)" change={5}
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>} />
-            <StatCard label="Avg. Revenue/Client" value="₹3,407" color="var(--info)"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>} />
-            <StatCard label="NPS Score" value="72" color="var(--warn)" change={4}
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>} />
+          {/* 2-col charts grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <Section title="Tenants over time">
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 30, color: 'var(--brand)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+                55 <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>total</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 14 }}>↑ 12 added in last 30 days</div>
+              <Sparkline data={TENANTS_DATA} color="var(--brand)" width={420} height={72} fill />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
+                <span>30 days ago</span><span>Today</span>
+              </div>
+            </Section>
+
+            <Section title="Top plans by MRR">
+              {TOP_PLANS.map(({ plan, mrr, color }) => {
+                const pct = (mrr / maxPlanMRR) * 100;
+                return (
+                  <div key={plan} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                      <span style={{ fontWeight: 600 }}>{plan}</span>
+                      <span style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 16 }}>₹{mrr.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="progress-track">
+                      <div className="progress-fill" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </Section>
           </div>
 
-          <div className="grid-2">
-            <Section title="New Signups (Last 30 days)">
-              <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--brand)', marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>26 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
-              <div style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, marginBottom: 16 }}>↑ 8 more vs last month</div>
+          {/* Signups + MRR */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <Section title="New signups (last 30 days)">
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 30, color: 'var(--brand)', marginBottom: 4, letterSpacing: '-0.01em' }}>26 <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
+              <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 14 }}>↑ 8 more vs last month</div>
               <MiniBarChart data={SIGNUP_DATA.map((v, i) => ({ label: i, value: v }))} color="var(--brand)" height={72} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}><span>30 days ago</span><span>Today</span></div>
             </Section>
 
-            <Section title="MRR Trend (7 months)">
-              <div style={{ fontSize: 32, fontWeight: 500, color: 'var(--success)', marginBottom: 4, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>₹1,87,400 <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
-              <div style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, marginBottom: 16 }}>↑ ₹2,400 vs last month (+1.3%)</div>
+            <Section title="MRR trend (7 months)">
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 30, color: 'var(--success)', marginBottom: 4, letterSpacing: '-0.01em' }}>₹1,87,400 <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)', fontFamily: 'var(--f-sans)' }}>this month</span></div>
+              <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 14 }}>↑ ₹2,400 vs last month (+1.3%)</div>
               <Sparkline data={MRR_DATA} color="var(--success)" width={360} height={72} fill />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}><span>Jul 2024</span><span>Jan 2025</span></div>
             </Section>
           </div>
 
-          <Section title="Geographic Distribution">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
-              {[
-                { city: 'Mumbai', count: 14, pct: 25 },
-                { city: 'Delhi NCR', count: 11, pct: 20 },
-                { city: 'Bangalore', count: 9, pct: 16 },
-                { city: 'Pune', count: 7, pct: 13 },
-                { city: 'Hyderabad', count: 5, pct: 9 },
-                { city: 'Chennai', count: 4, pct: 7 },
-                { city: 'Others', count: 5, pct: 9 },
-              ].map(({ city, count, pct }) => (
-                <div key={city} style={{ padding: '10px 14px', background: 'var(--bg)', borderRadius: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{city}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{count} clients · {pct}%</div>
-                  <div className="progress-track" style={{ height: 4 }}>
-                    <div className="progress-fill" style={{ width: `${pct * 3}%`, background: 'var(--brand)' }} />
+          {/* Geography + Agent leaderboard */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+            <Section title="Geographic distribution">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+                {[
+                  { city: 'Mumbai', count: 14, pct: 25 },
+                  { city: 'Delhi NCR', count: 11, pct: 20 },
+                  { city: 'Bangalore', count: 9, pct: 16 },
+                  { city: 'Pune', count: 7, pct: 13 },
+                  { city: 'Hyderabad', count: 5, pct: 9 },
+                  { city: 'Chennai', count: 4, pct: 7 },
+                  { city: 'Others', count: 5, pct: 9 },
+                ].map(({ city, count, pct }) => (
+                  <div key={city} style={{ padding: '10px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{city}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{count} clients · {pct}%</div>
+                    <div className="progress-track" style={{ height: 4 }}>
+                      <div className="progress-fill" style={{ width: `${pct * 3}%`, background: 'var(--brand)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Agent leaderboard" action={<span style={{ fontSize: 11, color: 'var(--muted)' }}>30d</span>}>
+              {AGENT_LEADERBOARD.map((a, i) => (
+                <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < AGENT_LEADERBOARD.length - 1 ? '1px solid var(--hair-2, var(--border))' : 'none' }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: i === 0 ? 'var(--accent-2-soft)' : 'var(--brand-bg)',
+                    color: i === 0 ? 'var(--accent)' : 'var(--brand)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 600, fontSize: 14,
+                    flexShrink: 0,
+                  }}>{i + 1}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{a.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.role}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 16 }}>{a.resolved}</div>
+                    <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>{a.csat}% CSAT</div>
                   </div>
                 </div>
               ))}
-            </div>
-          </Section>
+            </Section>
+          </div>
         </div>
       )}
 
-      {/* Feature Adoption */}
+      {/* ── Feature adoption tab ────────────────────────────────────────── */}
       {tab === 'features' && (
         <div>
           <div className="alert alert-info" style={{ marginBottom: 20 }}>
@@ -147,25 +276,15 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Message Volume */}
+      {/* ── Message volume tab ──────────────────────────────────────────── */}
       {tab === 'messages' && (
         <div>
-          <div className="grid-auto" style={{ marginBottom: 24 }}>
-            <StatCard label="Messages This Month" value="91,400" color="var(--brand)" change={9}
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} />
-            <StatCard label="Delivery Success Rate" value="96.4%" color="var(--success)"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>} />
-            <StatCard label="Marketing Messages" value="61%" color="var(--purple)"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>} />
-            <StatCard label="Utility Messages" value="39%" color="var(--info)"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>} />
-          </div>
-          <Section title="Daily Message Volume (Last 30 days)">
+          <Section title="Daily message volume (last 30 days)">
             <MiniBarChart data={MSG_DATA.map((v, i) => ({ label: i, value: v }))} color="var(--brand)" height={100} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--muted)' }}><span>30 days ago</span><span>Today</span></div>
           </Section>
-          <div className="grid-2">
-            <Section title="By Category">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <Section title="By category">
               {[
                 { label: 'Marketing', pct: 61, color: 'var(--purple)' },
                 { label: 'Utility', pct: 31, color: 'var(--info)' },
@@ -177,7 +296,7 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </Section>
-            <Section title="Peak Hours">
+            <Section title="Peak hours">
               {[
                 { label: '10am–12pm', msgs: 18200, pct: 85 },
                 { label: '12pm–2pm',  msgs: 14400, pct: 67 },
@@ -197,7 +316,7 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Cohort Retention */}
+      {/* ── Cohort retention tab ────────────────────────────────────────── */}
       {tab === 'cohort' && (
         <div>
           <div className="alert alert-success" style={{ marginBottom: 20 }}>
@@ -207,33 +326,34 @@ export default function AnalyticsPage() {
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>Oct 2024 cohort has 84% retention at Month 3 — up from 68% for Jul cohort. Onboarding improvements are working.</div>
             </div>
           </div>
-          <div className="card" style={{ overflow: 'auto' }}>
-            <div style={{ fontWeight: 700, marginBottom: 16 }}>Client Retention by Signup Cohort</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  {['Cohort', 'Month 0', 'Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {COHORT.map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '10px 12px', fontWeight: 600, fontSize: 13 }}>{row.month}</td>
-                    {[row.m0, row.m1, row.m2, row.m3, row.m4, row.m5].map((val, j) => (
-                      <td key={j} style={{ padding: '10px 12px', background: cohortBg(val), fontWeight: val !== '—' ? 700 : 400, color: val !== '—' ? 'var(--text)' : 'var(--muted)', fontSize: 13 }}>{val}</td>
+          <Section title="Client retention by signup cohort">
+            <div style={{ overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                    {['Cohort', 'Month 0', 'Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5'].map(h => (
+                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {COHORT.map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, fontSize: 13 }}>{row.month}</td>
+                      {[row.m0, row.m1, row.m2, row.m3, row.m4, row.m5].map((val, j) => (
+                        <td key={j} style={{ padding: '10px 12px', background: cohortBg(val), fontWeight: val !== '—' ? 700 : 400, color: val !== '—' ? 'var(--text)' : 'var(--muted)', fontSize: 13 }}>{val}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div style={{ marginTop: 16, display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(15,127,94,0.18)', borderRadius: 2, display: 'inline-block' }} /> ≥80% retained</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(232,169,74,0.20)', borderRadius: 2, display: 'inline-block' }} /> 60–79%</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12, background: 'rgba(192,59,59,0.14)', borderRadius: 2, display: 'inline-block' }} /> &lt;60%</span>
             </div>
-          </div>
+          </Section>
         </div>
       )}
     </div>

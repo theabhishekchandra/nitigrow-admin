@@ -14,6 +14,7 @@ import AuditPage from './pages/AuditPage';
 import SystemPage from './pages/SystemPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 import FeatureSpecPage from './pages/FeatureSpecPage';
+import SettingsPage from './pages/SettingsPage';
 
 const Guard = ({ children }) => {
   const token = useAdminStore(s => s.token);
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="audit"         element={<AuditPage />} />
           <Route path="feature-spec"  element={<FeatureSpecPage />} />
+          <Route path="settings"      element={<SettingsPage />} />
           <Route path="*"             element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

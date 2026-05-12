@@ -16,7 +16,7 @@ Same as web dashboard:
 - Socket.io-client (for live platform health)
 
 ## Critical Security Rules
-- Admin login page is plain — NO NitiGrow branding (security through obscurity)
+- Admin login page now uses the same warm Indian premium branding as the app — per owner decision 2026-05-12. Security through obscurity was dropped in favour of consistent identity across surfaces. Compensating controls: 2FA, IP allowlist, audit log, 30-min idle timeout.
 - 2FA mandatory for ALL admin accounts (TOTP)
 - IP allowlist: only NitiGrow team's known IPs
 - Session timeout: 30 minutes of inactivity

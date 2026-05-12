@@ -23,12 +23,20 @@ const AUDIENCE_OPTIONS = [
 const TYPE_COLORS = { info: 'blue', warning: 'yellow', feature: 'green' };
 const TYPE_ICONS  = { info: 'ℹ️', warning: '⚠️', feature: '✨' };
 
+// Warm-token border / fill per priority — matches app/src/index.css .alert family.
+const TYPE_TOKENS = {
+  info:    { border: 'rgba(76,110,245,.4)',  bg: 'rgba(76,110,245,0.10)', dot: 'var(--info)' },
+  warning: { border: 'rgba(232,169,74,.4)',  bg: 'var(--accent-2-soft, rgba(232,169,74,0.12))', dot: 'var(--warn)' },
+  feature: { border: 'rgba(15,127,94,.4)',   bg: 'var(--brand-bg)', dot: 'var(--success)' },
+};
+
 export default function AnnouncementsPage() {
   const [tab, setTab] = useState('create');
   const [form, setForm] = useState({ title: '', message: '', type: 'info', audience: 'all', schedule: 'now', scheduledAt: '' });
   const [preview, setPreview] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [sent, setSent] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState('all');
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: typeof e === 'string' ? e : e.target.value }));
 
@@ -41,9 +49,28 @@ export default function AnnouncementsPage() {
     setTimeout(() => setSent(false), 4000);
   };
 
+  const filteredHistory = MOCK_HISTORY.filter(a => historyFilter === 'all' ? true : historyFilter === a.status);
+
+  const priorityChips = [
+    { value: 'info',    label: 'Info',     color: 'var(--info)' },
+    { value: 'warning', label: 'Warning',  color: 'var(--warn)' },
+    { value: 'feature', label: 'Critical', color: 'var(--success)' },
+  ];
+
   return (
     <div className="animate-in">
-      <PageHeader title="Announcements" subtitle="Send in-app messages and WhatsApp blasts to all clients or specific groups" />
+      <PageHeader
+        title="Announcements"
+        subtitle="Compose, schedule and broadcast platform-wide messages"
+        actions={
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => setTab(tab === 'create' ? 'history' : 'create')}
+          >
+            {tab === 'create' ? '📜 View history' : '✏️ Compose new'}
+          </button>
+        }
+      />
 
       {sent && (
         <div className="alert alert-success" style={{ marginBottom: 20 }}>
@@ -53,37 +80,64 @@ export default function AnnouncementsPage() {
       )}
 
       <div className="tab-list">
-        {[['create', '✏️ Create Announcement'], ['history', '📜 History']].map(([k, l]) => (
+        {[['create', 'New announcement'], ['history', 'Past announcements']].map(([k, l]) => (
           <button key={k} className={`tab-btn${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {/* Create */}
+      {/* ── Composer + live preview ─────────────────────────────────────── */}
       {tab === 'create' && (
-        <div className="grid-2" style={{ alignItems: 'start' }}>
-          {/* Form */}
-          <Section title="Compose Announcement">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 14, alignItems: 'start' }}>
+          <Section title="New announcement">
             <Field label="Title" required>
-              <input placeholder="e.g. Scheduled Maintenance Notice" value={form.title} onChange={set('title')} />
+              <input
+                placeholder="e.g. Scheduled Maintenance Notice"
+                value={form.title}
+                onChange={set('title')}
+                style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontSize: 16, letterSpacing: '-0.005em' }}
+              />
             </Field>
-            <Field label="Message" required>
-              <textarea rows={4} placeholder="Write your announcement…" value={form.message} onChange={set('message')} />
+            <Field label="Body" required>
+              <textarea rows={5} placeholder="Write your announcement…" value={form.message} onChange={set('message')} />
             </Field>
-            <div className="grid-2">
-              <Field label="Type">
-                <select value={form.type} onChange={set('type')}>
-                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_ICONS[t]} {t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                </select>
-              </Field>
-              <Field label="Audience">
-                <select value={form.audience} onChange={set('audience')}>
-                  {AUDIENCE_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-                </select>
-              </Field>
-            </div>
+
+            <Field label="Priority">
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {priorityChips.map(p => {
+                  const active = form.type === p.value;
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => set('type')(p.value)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        border: `1px solid ${active ? p.color : 'var(--border)'}`,
+                        background: active ? TYPE_TOKENS[p.value].bg : 'transparent',
+                        color: active ? p.color : 'var(--muted)',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <Field label="Audience">
+              <select value={form.audience} onChange={set('audience')}>
+                {AUDIENCE_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </Field>
+
             <Field label="Schedule">
               <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-                {[['now', 'Send Now'], ['scheduled', 'Schedule for Later']].map(([v, l]) => (
+                {[['now', 'Send now'], ['scheduled', 'Schedule for later']].map(([v, l]) => (
                   <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
                     <input type="radio" name="schedule" value={v} checked={form.schedule === v} onChange={set('schedule')} style={{ width: 'auto' }} />
                     {l}
@@ -92,82 +146,135 @@ export default function AnnouncementsPage() {
               </div>
               {form.schedule === 'scheduled' && <input type="datetime-local" value={form.scheduledAt} onChange={set('scheduledAt')} />}
             </Field>
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button className="btn-secondary btn-sm" onClick={() => setPreview(true)} disabled={!form.title}>👁 Preview</button>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--hair-2, var(--border))' }}>
+              <button className="btn-secondary btn-sm" onClick={() => setPreview(true)} disabled={!form.title}>👁 Preview full</button>
               <button className="btn-primary btn-sm" onClick={() => setConfirm(true)} disabled={!form.title || !form.message}>
                 {form.schedule === 'now' ? '📢 Send Now' : '⏰ Schedule'}
               </button>
+              <div style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--muted)', alignSelf: 'center' }}>
+                Reaches <strong style={{ color: 'var(--brand)' }}>{estimatedCount}</strong> clients
+              </div>
             </div>
           </Section>
 
-          {/* Live preview */}
-          <Section title="Preview" style={{ background: 'var(--bg)' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-              This is how clients will see your announcement in their dashboard.
-            </div>
-            <div style={{
-              borderRadius: 12, padding: '14px 16px', border: '1px solid',
-              borderColor: form.type === 'warning' ? 'rgba(232,169,74,.4)' : form.type === 'feature' ? 'rgba(15,127,94,.4)' : 'rgba(76,110,245,.4)',
-              background: form.type === 'warning' ? 'var(--accent-2-soft, rgba(232,169,74,0.12))' : form.type === 'feature' ? 'var(--brand-soft)' : 'rgba(76,110,245,0.10)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{TYPE_ICONS[form.type]}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{form.title || 'Announcement Title'}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{form.message || 'Your announcement message will appear here.'}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>From NitiGrow · Just now</div>
+          <div style={{ position: 'sticky', top: 16 }}>
+            <Section title="Live preview" action={<span style={{ fontSize: 11, color: 'var(--muted)' }}>How clients see it</span>} style={{ background: 'var(--bg)' }}>
+              <div style={{
+                borderRadius: 12,
+                padding: '14px 16px',
+                border: `1px solid ${TYPE_TOKENS[form.type].border}`,
+                background: TYPE_TOKENS[form.type].bg,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{TYPE_ICONS[form.type]}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600, fontSize: 15, marginBottom: 4,
+                      fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.005em',
+                    }}>{form.title || 'Announcement title'}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{form.message || 'Your announcement message will appear here.'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>From NitiGrow · Just now</div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--card)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>Audience summary</div>
-              <div style={{ color: 'var(--muted)' }}>
-                Sending to: <strong style={{ color: 'var(--text)' }}>{AUDIENCE_OPTIONS.find(a => a.value === form.audience)?.label}</strong>
+
+              <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Send summary</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12.5 }}>
+                  <span style={{ color: 'var(--muted)' }}>Audience</span>
+                  <span style={{ fontWeight: 600 }}>{AUDIENCE_OPTIONS.find(a => a.value === form.audience)?.label}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12.5 }}>
+                  <span style={{ color: 'var(--muted)' }}>Recipients</span>
+                  <span style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 16, color: 'var(--brand)' }}>{estimatedCount}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12.5 }}>
+                  <span style={{ color: 'var(--muted)' }}>Priority</span>
+                  <Badge color={TYPE_COLORS[form.type]}>{form.type}</Badge>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12.5 }}>
+                  <span style={{ color: 'var(--muted)' }}>Delivery</span>
+                  <span style={{ fontWeight: 600 }}>{form.schedule === 'now' ? 'Immediate' : form.scheduledAt || 'Scheduled'}</span>
+                </div>
               </div>
-              <div style={{ color: 'var(--muted)', marginTop: 2 }}>
-                Estimated recipients: <strong style={{ color: 'var(--brand)' }}>{estimatedCount} clients</strong>
-              </div>
-            </div>
-          </Section>
+            </Section>
+          </div>
         </div>
       )}
 
-      {/* History */}
+      {/* ── Past announcements ──────────────────────────────────────────── */}
       {tab === 'history' && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>{['Title', 'Type', 'Audience', 'Sent / Scheduled', 'Open Rate', 'Status'].map(h => <th key={h}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {MOCK_HISTORY.map(a => (
-                <tr key={a.id}>
-                  <td style={{ fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>{TYPE_ICONS[a.type]}</span>
-                      {a.title}
-                    </div>
-                  </td>
-                  <td><Badge color={TYPE_COLORS[a.type]}>{a.type}</Badge></td>
-                  <td style={{ color: 'var(--muted)', fontSize: 13 }}>{a.audience}</td>
-                  <td style={{ color: 'var(--muted)', fontSize: 12 }}>{a.sentAt || a.scheduledFor}</td>
-                  <td>
-                    {a.opens != null
-                      ? <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div className="progress-track" style={{ width: 80 }}>
-                            <div className="progress-fill" style={{ width: `${Math.round((a.opens / a.total) * 100)}%`, background: 'var(--brand)' }} />
-                          </div>
-                          <span style={{ fontSize: 12, fontWeight: 600 }}>{Math.round((a.opens / a.total) * 100)}%</span>
-                        </div>
-                      : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
-                    }
-                  </td>
-                  <td><Badge color={a.status === 'sent' ? 'green' : 'yellow'}>{a.status}</Badge></td>
-                </tr>
+        <Section
+          title="Past announcements"
+          action={
+            <div style={{ display: 'inline-flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 999, padding: 3 }}>
+              {[['all', 'All'], ['sent', 'Sent'], ['scheduled', 'Scheduled'], ['draft', 'Draft']].map(([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => setHistoryFilter(v)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    fontSize: 11.5,
+                    fontWeight: historyFilter === v ? 600 : 500,
+                    background: historyFilter === v ? 'var(--card)' : 'transparent',
+                    color: historyFilter === v ? 'var(--text)' : 'var(--muted)',
+                    border: 'none',
+                    boxShadow: historyFilter === v ? 'var(--shadow-sm)' : 'none',
+                  }}
+                >
+                  {l}
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          }
+        >
+          <div>
+            {filteredHistory.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No announcements match this filter.</div>
+            ) : (
+              filteredHistory.map((a, i) => {
+                const rate = a.opens != null ? Math.round((a.opens / a.total) * 100) : null;
+                return (
+                  <div
+                    key={a.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 0',
+                      borderBottom: i < filteredHistory.length - 1 ? '1px solid var(--hair-2, var(--border))' : 'none',
+                    }}
+                  >
+                    <span style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: TYPE_TOKENS[a.type].bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, fontSize: 18,
+                    }}>{TYPE_ICONS[a.type]}</span>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 15, letterSpacing: '-0.005em', marginBottom: 3 }}>{a.title}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                        {a.audience} · {a.sentAt || `Scheduled ${a.scheduledFor}`}
+                      </div>
+                    </div>
+
+                    {rate != null ? (
+                      <div style={{ textAlign: 'right', minWidth: 90 }}>
+                        <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 18, color: 'var(--brand)' }}>{rate}%</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.opens}/{a.total} opened</div>
+                      </div>
+                    ) : (
+                      <div style={{ minWidth: 90, textAlign: 'right', fontSize: 12, color: 'var(--muted)' }}>—</div>
+                    )}
+
+                    <Badge color={a.status === 'sent' ? 'green' : 'yellow'}>{a.status}</Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Section>
       )}
 
       {/* Confirm modal */}

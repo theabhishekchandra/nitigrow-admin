@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Badge, PageHeader } from '../components/ui';
+import { Badge, PageHeader, EmptyState } from '../components/ui';
 
 const CONVS = [
   { id: 1, client: 'TechBridge Solutions', channel: 'chat', lastMsg: 'Campaign is not delivering since morning', time: '5m', priority: 'urgent', status: 'open', agent: null, unread: true, plan: 'Growth', mrr: 2499, healthScore: 88 },
@@ -35,8 +35,31 @@ const CANNED = [
   { key: '/trial', text: 'Your trial ends in {trial_end}. You can upgrade anytime under Settings → Billing → Choose Plan.' },
 ];
 
-const CH_ICON = { chat: '💬', whatsapp: '📱', email: '📧' };
+const CH_LABEL = { chat: 'Live chat', whatsapp: 'WhatsApp', email: 'Email' };
 const PRI_COLOR = { urgent: 'red', high: 'yellow', normal: 'blue', low: 'gray' };
+const PLAN_COLOR = { Starter: 'blue', Growth: 'green', Pro: 'purple', Enterprise: 'cyan' };
+
+const PALETTE = ['var(--brand)', 'var(--accent, #C55A2B)', 'var(--accent-2, #E8A94A)', '#7C5BC6', '#3E8EDB', '#0F7F5E', '#C03B3B'];
+const colorFor = (name) => PALETTE[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length];
+const initials = (name) => (name || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+const Avatar = ({ name, size = 36 }) => (
+  <span style={{
+    width: size, height: size, borderRadius: '50%',
+    background: colorFor(name), color: 'var(--paper, #FBF8F3)',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    fontWeight: 600, fontSize: Math.round(size * 0.38), flexShrink: 0,
+    fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '.02em',
+  }}>{initials(name)}</span>
+);
+
+const ChannelChip = ({ channel }) => (
+  <span style={{
+    fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 99,
+    background: 'var(--paper-2, var(--bg))', color: 'var(--muted)',
+    border: '1px solid var(--hair, var(--border))',
+  }}>{CH_LABEL[channel]}</span>
+);
 
 export default function SupportPage() {
   const [filter, setFilter] = useState('open');
@@ -50,6 +73,8 @@ export default function SupportPage() {
     if (filter === 'resolved') return c.status === 'resolved';
     if (filter === 'unassigned') return !c.agent;
     if (filter === 'urgent') return c.priority === 'urgent';
+    if (filter === 'pending') return c.status === 'open' && c.agent;
+    if (filter === 'mine') return c.agent === 'You' || c.agent === 'Me';
     return true;
   });
 
@@ -73,74 +98,129 @@ export default function SupportPage() {
     setShowCanned(false);
   };
 
+  const FILTERS = [
+    ['all', 'All'],
+    ['open', 'Open'],
+    ['pending', 'Pending'],
+    ['resolved', 'Resolved'],
+    ['urgent', 'Urgent'],
+    ['mine', 'Mine'],
+  ];
+
   return (
-    <div className="animate-in">
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px - 24px - 24px)', minHeight: 520 }}>
       <PageHeader
         title="Support Inbox"
         subtitle="All channels — live chat, WhatsApp, email"
-        actions={<>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>🟢 Online</span>
-          <button className="btn-ghost btn-sm">Canned Responses</button>
-        </>}
+        actions={
+          <>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
+              <span className="dot dot-green pulse-anim" /> Online
+            </span>
+            <button className="btn-ghost btn-sm">Canned responses</button>
+          </>
+        }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 260px', gap: 16, height: 'calc(100vh - 180px)', overflow: 'hidden' }}>
-
-        {/* ── Left: conversation list ── */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {/* Filter tabs */}
-          <div style={{ padding: '12px 12px 0', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', paddingBottom: 10 }}>
-              {[['all', 'All'], ['open', 'Open'], ['unassigned', 'Unassigned'], ['urgent', 'Urgent'], ['resolved', 'Resolved']].map(([k, l]) => (
+      {/* Two-pane split */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '360px 1fr', gap: 14,
+        flex: 1, minHeight: 0,
+      }}>
+        {/* ── Left: filter rail + conversation list ─────────────────────── */}
+        <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: 12, borderBottom: '1px solid var(--hair, var(--border))', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input
+              placeholder="Search tickets…"
+              className="input"
+              style={{ width: '100%', fontSize: 13 }}
+            />
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {FILTERS.map(([k, l]) => (
                 <button key={k} onClick={() => setFilter(k)}
-                  style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', background: filter === k ? 'var(--brand)' : 'transparent', color: filter === k ? '#FBF8F3' : 'var(--muted)', cursor: 'pointer' }}>
+                  style={{
+                    padding: '4px 11px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                    border: '1px solid var(--hair, var(--border))',
+                    background: filter === k ? 'var(--brand)' : 'transparent',
+                    color: filter === k ? 'var(--paper, #FBF8F3)' : 'var(--muted)',
+                    cursor: 'pointer',
+                  }}>
                   {l}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Conversation list */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {filtered.map(c => (
-              <div key={c.id} onClick={() => setSelected(c)}
-                style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected?.id === c.id ? 'var(--brand-bg)' : c.unread ? 'var(--accent-2-soft, rgba(232,169,74,0.10))' : 'transparent', transition: 'background .1s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14 }}>{CH_ICON[c.channel]}</span>
-                    <span style={{ fontWeight: c.unread ? 700 : 500, fontSize: 13 }}>{c.client}</span>
+            {filtered.map(c => {
+              const sel = selected?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelected(c)}
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '12px 14px',
+                    display: 'flex', gap: 10, alignItems: 'flex-start',
+                    background: sel ? 'var(--brand-bg)' : c.unread ? 'var(--accent-2-soft, transparent)' : 'transparent',
+                    borderLeft: `3px solid ${sel ? 'var(--brand)' : 'transparent'}`,
+                    borderBottom: '1px solid var(--hair-2, var(--border))',
+                    borderRadius: 0, cursor: 'pointer', transition: 'background .12s',
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-2, var(--paper-2, transparent))'; }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = c.unread ? 'var(--accent-2-soft, transparent)' : 'transparent'; }}
+                >
+                  <Avatar name={c.client} size={36} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                      <span style={{ fontWeight: c.unread ? 700 : 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.client}</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{c.time}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 3 }}>
+                      {c.lastMsg}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                      <ChannelChip channel={c.channel} />
+                      <Badge color={PRI_COLOR[c.priority]}>{c.priority}</Badge>
+                      {c.agent && <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {c.agent}</span>}
+                    </div>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>{c.time}</span>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>{c.lastMsg}</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <Badge color={PRI_COLOR[c.priority]}>{c.priority}</Badge>
-                  {c.agent && <span style={{ fontSize: 11, color: 'var(--muted)' }}>→ {c.agent}</span>}
-                </div>
-              </div>
-            ))}
-            {filtered.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No conversations</div>}
+                </button>
+              );
+            })}
+            {filtered.length === 0 && <EmptyState message="No conversations match this filter" />}
           </div>
         </div>
 
-        {/* ── Centre: chat window ── */}
+        {/* ── Right: ticket detail ──────────────────────────────────────── */}
         <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {selected && (
+          {!selected ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EmptyState message="Select a conversation to view the thread" />
+            </div>
+          ) : (
             <>
               {/* Header */}
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{CH_ICON[selected.channel]}</span>
-                    {selected.client}
-                    <Badge color={PRI_COLOR[selected.priority]}>{selected.priority}</Badge>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                    {selected.agent ? `Assigned to ${selected.agent}` : 'Unassigned'}
+              <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--hair, var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                  <Avatar name={selected.client} size={42} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 18, letterSpacing: '-0.01em' }}>
+                      {selected.client}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <ChannelChip channel={selected.channel} />
+                      <Badge color={PRI_COLOR[selected.priority]}>{selected.priority}</Badge>
+                      <Badge color={selected.status === 'resolved' ? 'green' : 'blue'}>{selected.status}</Badge>
+                      <Badge color={PLAN_COLOR[selected.plan]}>{selected.plan}</Badge>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {selected.agent ? `· assigned to ${selected.agent}` : '· unassigned'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <select style={{ width: 130, fontSize: 12, padding: '4px 8px' }}>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <select style={{ width: 140, fontSize: 12, padding: '5px 10px' }}>
                     <option>Assign agent…</option>
                     <option>Rahul</option>
                     <option>Priya</option>
@@ -151,89 +231,74 @@ export default function SupportPage() {
               </div>
 
               {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {msgs.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: m.from === 'client' ? 'flex-start' : 'flex-end' }}>
-                    <div style={{
-                      maxWidth: '72%', padding: '10px 14px', borderRadius: m.from === 'client' ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
-                      background: m.from === 'client' ? 'var(--bg-2)' : m.from === 'bot' ? 'rgba(76,110,245,0.10)' : 'var(--brand)',
-                      color: m.from === 'agent' ? '#FBF8F3' : 'var(--text)', fontSize: 13,
-                    }}>
-                      {m.from !== 'client' && (
-                        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.7 }}>
-                          {m.from === 'bot' ? '🤖 NitiGrow Bot' : `👤 ${m.agent || 'Agent'}`}
-                        </div>
-                      )}
-                      {m.text}
-                      <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: 'right' }}>{m.time}</div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--paper-2, var(--bg))' }}>
+                {msgs.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 40, fontSize: 13 }}>No messages yet</div>
+                ) : msgs.map((m, i) => {
+                  const isIn = m.from === 'client';
+                  const isBot = m.from === 'bot';
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: isIn ? 'flex-start' : 'flex-end', gap: 8, alignItems: 'flex-end' }}>
+                      {isIn && <Avatar name={selected.client} size={26} />}
+                      <div style={{
+                        maxWidth: '70%',
+                        padding: '10px 14px',
+                        borderRadius: isIn ? '4px 14px 14px 14px' : '14px 4px 14px 14px',
+                        background: isIn ? 'var(--paper, var(--card))' : isBot ? 'var(--accent-2-soft, rgba(232,169,74,0.14))' : 'var(--brand)',
+                        color: isIn ? 'var(--ink, var(--text))' : isBot ? 'var(--ink, var(--text))' : 'var(--paper, #FBF8F3)',
+                        border: isIn ? '1px solid var(--hair, var(--border))' : 'none',
+                        fontSize: 13, lineHeight: 1.5,
+                        boxShadow: isIn ? 'none' : '0 1px 2px rgba(26,23,20,0.06)',
+                      }}>
+                        {!isIn && (
+                          <div style={{ fontSize: 10.5, fontWeight: 700, marginBottom: 4, opacity: 0.78, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+                            {isBot ? 'NitiGrow bot' : (m.agent || 'Agent')}
+                          </div>
+                        )}
+                        <div>{m.text}</div>
+                        <div style={{ fontSize: 10, opacity: 0.65, marginTop: 5, textAlign: 'right', fontFamily: 'var(--f-mono, ui-monospace, monospace)' }}>{m.time}</div>
+                      </div>
+                      {!isIn && !isBot && <Avatar name={m.agent || 'Agent'} size={26} />}
                     </div>
-                  </div>
-                ))}
-                {msgs.length === 0 && <div style={{ textAlign: 'center', color: 'var(--muted)', marginTop: 40 }}>No messages yet</div>}
+                  );
+                })}
               </div>
 
               {/* Canned responses picker */}
               {showCanned && (
-                <div style={{ margin: '0 18px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                <div style={{
+                  margin: '0 22px',
+                  background: 'var(--paper, var(--card))',
+                  border: '1px solid var(--hair, var(--border))', borderRadius: 8,
+                  maxHeight: 180, overflowY: 'auto',
+                  boxShadow: '0 4px 14px rgba(26,23,20,0.08)',
+                }}>
                   {CANNED.filter(c => c.key.includes(reply.toLowerCase())).map((c, i) => (
-                    <div key={i} onClick={() => insertCanned(c.text)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ color: 'var(--brand)', fontWeight: 700 }}>{c.key}</span>
-                      <span style={{ color: 'var(--muted)', marginLeft: 8 }}>{c.text.slice(0, 60)}…</span>
+                    <div key={i} onClick={() => insertCanned(c.text)}
+                      style={{
+                        padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+                        borderBottom: '1px solid var(--hair-2, var(--border))',
+                      }}>
+                      <span style={{ color: 'var(--brand)', fontWeight: 700, fontFamily: 'var(--f-mono, ui-monospace, monospace)' }}>{c.key}</span>
+                      <span style={{ color: 'var(--muted)', marginLeft: 10 }}>{c.text.slice(0, 70)}…</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Reply box */}
-              <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <textarea
-                    value={reply}
-                    onChange={handleReplyChange}
-                    placeholder="Type reply… or / for canned responses"
-                    rows={2}
-                    style={{ resize: 'none', paddingRight: 12 }}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
-                  />
-                </div>
+              {/* Composer */}
+              <div style={{ padding: '14px 22px', borderTop: '1px solid var(--hair, var(--border))', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                <textarea
+                  value={reply}
+                  onChange={handleReplyChange}
+                  placeholder="Type your reply…  · / for canned responses · Shift+↵ for newline"
+                  rows={2}
+                  style={{ resize: 'none', flex: 1, fontSize: 13, padding: '10px 14px' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
+                />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <button className="btn-primary btn-sm" onClick={sendReply}>Send ↵</button>
-                  <button className="btn-ghost btn-xs">📎 File</button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ── Right: client info ── */}
-        <div className="card" style={{ overflow: 'auto' }}>
-          {selected && (
-            <>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>{selected.client}</div>
-              {[
-                ['Plan', <Badge color={{ starter: 'blue', growth: 'green', pro: 'purple', enterprise: 'cyan' }[selected.plan.toLowerCase()]}>{selected.plan}</Badge>],
-                ['MRR', selected.mrr > 0 ? `₹${selected.mrr.toLocaleString('en-IN')}` : 'Trial'],
-                ['Health', <span style={{ fontWeight: 700, color: selected.healthScore >= 70 ? 'var(--success)' : selected.healthScore >= 40 ? 'var(--warn)' : 'var(--danger)' }}>{selected.healthScore}/100</span>],
-                ['Channel', CH_ICON[selected.channel] + ' ' + selected.channel],
-                ['Priority', <Badge color={PRI_COLOR[selected.priority]}>{selected.priority}</Badge>],
-              ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                  <span style={{ color: 'var(--muted)' }}>{label}</span>
-                  <span style={{ fontWeight: 500 }}>{val}</span>
-                </div>
-              ))}
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button className="btn-ghost btn-sm" style={{ justifyContent: 'flex-start' }}>→ View Client Profile</button>
-                <button className="btn-ghost btn-sm" style={{ justifyContent: 'flex-start' }}>🔍 Impersonate</button>
-                <button className="btn-ghost btn-sm" style={{ justifyContent: 'flex-start' }}>💳 View Billing</button>
-              </div>
-
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Tags</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {['Billing', 'Campaign', 'Onboarding', 'Bug', 'Feature'].map(tag => (
-                    <button key={tag} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>{tag}</button>
-                  ))}
+                  <button className="btn-ghost btn-xs">Attach</button>
                 </div>
               </div>
             </>

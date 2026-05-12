@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Badge, PageHeader, HealthDot, Section, EmptyState } from '../components/ui';
 
@@ -27,7 +28,31 @@ const MOCK_API_ERRORS = [
 ];
 
 const qColor = { GREEN: 'var(--success)', YELLOW: 'var(--warn)', RED: 'var(--danger)' };
-const qStatus = { GREEN: 'green', YELLOW: 'yellow', RED: 'red' };
+const qStatus = { GREEN: 'green', YELLOW: 'yellow', RED: 'red', UNKNOWN: 'gray' };
+const qTone = { GREEN: 'var(--success)', YELLOW: 'var(--warn)', RED: 'var(--danger)', UNKNOWN: 'var(--muted)' };
+
+const tierFor = (msgs) => {
+  if (msgs >= 1000) return 'Tier 3 · 100k/24h';
+  if (msgs >= 250) return 'Tier 2 · 10k/24h';
+  if (msgs >= 50) return 'Tier 1 · 1k/24h';
+  return 'Tier 0 · 250/24h';
+};
+
+const QualityTile = ({ label, count, tone, hint }) => (
+  <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 124, borderLeft: `3px solid ${tone}` }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{label}</div>
+      <HealthDot status={qStatus[label] || 'gray'} />
+    </div>
+    <div style={{
+      fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)',
+      fontWeight: 500, fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.01em', color: tone,
+    }}>
+      {count}
+    </div>
+    <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 'auto' }}>{hint}</div>
+  </div>
+);
 
 export default function WhatsAppPage() {
   const [tab, setTab] = useState('quality');
@@ -40,156 +65,238 @@ export default function WhatsAppPage() {
 
   const filtered = filterQ === 'all' ? quality : quality.filter(q => q.quality === filterQ);
 
-  const stats = { green: quality.filter(q => q.quality === 'GREEN').length, yellow: quality.filter(q => q.quality === 'YELLOW').length, red: quality.filter(q => q.quality === 'RED').length };
+  const stats = {
+    green: quality.filter(q => q.quality === 'GREEN').length,
+    yellow: quality.filter(q => q.quality === 'YELLOW').length,
+    red: quality.filter(q => q.quality === 'RED').length,
+    unknown: quality.filter(q => !['GREEN', 'YELLOW', 'RED'].includes(q.quality)).length,
+  };
+
+  const needsAttention = quality.filter(q => q.quality === 'YELLOW' || q.quality === 'RED');
 
   return (
     <div className="animate-in">
-      <PageHeader title="WhatsApp Monitoring" subtitle="Quality ratings, template approvals, Meta API health" />
+      <PageHeader
+        title="WhatsApp Monitoring"
+        subtitle="Quality ratings, template approvals, Meta API health"
+      />
 
-      {/* Summary cards */}
-      <div className="grid-3" style={{ marginBottom: 24 }}>
-        {[
-          { label: 'Green (Healthy)', count: stats.green, color: 'var(--success)', cls: 'badge-green' },
-          { label: 'Yellow (Warning)', count: stats.yellow, color: 'var(--warn)', cls: 'badge-yellow' },
-          { label: 'Red (Action needed)', count: stats.red, color: 'var(--danger)', cls: 'badge-red' },
-        ].map(({ label, count, color, cls }) => (
-          <div key={label} className="card card-sm" style={{ borderLeft: `3px solid ${color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{label}</div>
-            <div style={{ fontSize: 32, fontWeight: 500, color, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{count}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>client{count !== 1 ? 's' : ''}</div>
-          </div>
-        ))}
+      {/* ── 4 Quality KPI tiles ─────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
+        <QualityTile label="GREEN" count={stats.green} tone="var(--success)" hint="Healthy numbers — no action" />
+        <QualityTile label="YELLOW" count={stats.yellow} tone="var(--warn)"    hint="Watch closely — declining" />
+        <QualityTile label="RED" count={stats.red} tone="var(--danger)"  hint="Action required immediately" />
+        <QualityTile label="UNKNOWN" count={stats.unknown} tone="var(--muted)"   hint="Awaiting first quality signal" />
       </div>
 
-      {/* Tabs */}
+      {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <div className="tab-list">
-        {[['quality', '📊 Quality Alerts'], ['templates', '📋 Template Monitor'], ['meta', '📡 Meta API Health']].map(([k, label]) => (
+        {[['quality', 'Quality Radar'], ['templates', 'Template Monitor'], ['meta', 'Meta API Health']].map(([k, label]) => (
           <button key={k} className={`tab-btn${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
 
-      {/* Quality Alerts */}
+      {/* ── Quality Radar ───────────────────────────────────────────────── */}
       {tab === 'quality' && (
-        <div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {['all', 'GREEN', 'YELLOW', 'RED'].map(f => (
-              <button key={f} onClick={() => setFilterQ(f)}
-                style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: filterQ === f ? 'var(--brand)' : 'var(--card)', color: filterQ === f ? '#FBF8F3' : 'var(--muted)', cursor: 'pointer' }}>
-                {f === 'all' ? 'All' : f}
-              </button>
-            ))}
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  {['Business', 'WA Number', 'Quality', 'Msgs Today', 'Trend', 'Changed', 'Actions'].map(h => <th key={h}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7}><EmptyState message="No clients match filter" /></td></tr>
-                ) : filtered.map(c => (
-                  <tr key={c._id}>
-                    <td style={{ fontWeight: 600 }}>{c.businessName}</td>
-                    <td style={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: 12 }}>{c.waNumber}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <HealthDot status={qStatus[c.quality]} />
-                        <span style={{ fontWeight: 700, color: qColor[c.quality] }}>{c.quality}</span>
+        <>
+          {/* Needs attention */}
+          {needsAttention.length > 0 && (
+            <Section
+              title="Needs attention"
+              action={<span style={{ fontSize: 12, color: 'var(--muted)' }}>{needsAttention.length} number{needsAttention.length !== 1 ? 's' : ''} flagged</span>}
+              style={{ padding: 0 }}
+            >
+              <div style={{ marginTop: -16, marginLeft: -20, marginRight: -20, marginBottom: -20 }}>
+                {needsAttention.map((c, i) => (
+                  <div key={c._id} style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '12px 20px',
+                    borderTop: i === 0 ? '1px solid var(--hair, var(--border))' : '1px solid var(--hair-2, var(--border))',
+                  }}>
+                    <div style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: qColor[c.quality],
+                      boxShadow: `0 0 0 4px ${c.quality === 'RED' ? 'var(--danger-bg)' : 'var(--warn-bg)'}`,
+                      flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.businessName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--f-mono, ui-monospace, monospace)', marginTop: 2 }}>
+                        {c.waNumber}
                       </div>
-                    </td>
-                    <td>{c.messagesDay.toLocaleString('en-IN')}</td>
-                    <td>
-                      <span style={{ color: c.trend === 'improving' ? 'var(--success)' : c.trend === 'declining' ? 'var(--danger)' : 'var(--muted)', fontSize: 12 }}>
-                        {c.trend === 'improving' ? '↑ Improving' : c.trend === 'declining' ? '↓ Declining' : '→ Stable'}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--muted)', fontSize: 12 }}>{c.lastChanged}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {c.quality !== 'GREEN' && <button className="btn-warn btn-xs">Pause Campaigns</button>}
-                        {c.quality !== 'GREEN' && <button className="btn-ghost btn-xs">Notify Client</button>}
-                      </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, fontSize: 11.5, color: 'var(--muted)' }}>
+                      <span style={{ fontWeight: 700, color: qColor[c.quality], fontSize: 12, letterSpacing: '.04em' }}>{c.quality}</span>
+                      <span>{tierFor(c.messagesDay)}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)', minWidth: 100, textAlign: 'right' }}>
+                      {c.lastChanged}
+                    </div>
+                    <Link
+                      to={`/tenants/${c._id}`}
+                      className="btn-ghost btn-sm"
+                      style={{ textDecoration: 'none', flexShrink: 0 }}
+                    >
+                      Open client →
+                    </Link>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </div>
+            </Section>
+          )}
+
+          {/* All monitored numbers */}
+          <Section
+            title="All monitored numbers"
+            action={
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['all', 'GREEN', 'YELLOW', 'RED'].map(f => (
+                  <button key={f} onClick={() => setFilterQ(f)}
+                    style={{
+                      padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                      border: '1px solid var(--hair, var(--border))',
+                      background: filterQ === f ? 'var(--brand)' : 'transparent',
+                      color: filterQ === f ? 'var(--paper, #FBF8F3)' : 'var(--muted)',
+                      cursor: 'pointer',
+                    }}>
+                    {f === 'all' ? 'All' : f}
+                  </button>
+                ))}
+              </div>
+            }
+            style={{ padding: 0 }}
+          >
+            <div style={{ marginTop: -16, marginLeft: -20, marginRight: -20, marginBottom: -20 }}>
+              {filtered.length === 0 ? (
+                <EmptyState message="No numbers match this filter" />
+              ) : filtered.map((c, i) => (
+                <div key={c._id} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '12px 20px',
+                  borderTop: i === 0 ? '1px solid var(--hair, var(--border))' : '1px solid var(--hair-2, var(--border))',
+                  transition: 'background .12s',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2, var(--paper-2, transparent))'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13.5 }}>{c.businessName}</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {tierFor(c.messagesDay)}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--f-mono, ui-monospace, monospace)', marginTop: 3 }}>
+                      {c.waNumber}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <HealthDot status={qStatus[c.quality]} />
+                      <span style={{ fontWeight: 700, color: qColor[c.quality], fontSize: 12, letterSpacing: '.04em' }}>{c.quality}</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>checked {c.lastChanged}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          {/* Meta API quota inline card */}
+          <Section title="Meta API quota">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Rate limit left</div>
+                <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 26, color: 'var(--success)' }}>87%</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>Resets in 47 min</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Errors · last 24h</div>
+                <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 26, color: MOCK_API_ERRORS.length > 0 ? 'var(--warn)' : 'var(--success)' }}>{MOCK_API_ERRORS.length}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>Across all tenants</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Last webhook</div>
+                <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 26, color: 'var(--success)' }}>2m</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>Healthy</div>
+              </div>
+            </div>
+          </Section>
+        </>
       )}
 
-      {/* Template Monitor */}
+      {/* ── Template Monitor ────────────────────────────────────────────── */}
       {tab === 'templates' && (
-        <div>
+        <>
           <div className="grid-4" style={{ marginBottom: 20 }}>
             {[
               { label: 'Approved', count: MOCK_TEMPLATES.filter(t => t.status === 'approved').length, color: 'var(--success)' },
-              { label: 'Pending', count: MOCK_TEMPLATES.filter(t => t.status === 'pending').length, color: 'var(--warn)' },
+              { label: 'Pending',  count: MOCK_TEMPLATES.filter(t => t.status === 'pending').length,  color: 'var(--warn)' },
               { label: 'Rejected', count: MOCK_TEMPLATES.filter(t => t.status === 'rejected').length, color: 'var(--danger)' },
-              { label: 'Paused', count: MOCK_TEMPLATES.filter(t => t.status === 'paused').length, color: 'var(--muted)' },
+              { label: 'Paused',   count: MOCK_TEMPLATES.filter(t => t.status === 'paused').length,   color: 'var(--muted)' },
             ].map(({ label, count, color }) => (
-              <div key={label} className="card card-sm" style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 30, fontWeight: 500, color, fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{count}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{label}</div>
+              <div key={label} className="card card-sm" style={{ borderLeft: `3px solid ${color}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>{label}</div>
+                <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 28, color, lineHeight: 1.05 }}>{count}</div>
               </div>
             ))}
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr>{['Business', 'Template Name', 'Category', 'Status', 'Reason', 'Submitted'].map(h => <th key={h}>{h}</th>)}</tr></thead>
-              <tbody>
-                {MOCK_TEMPLATES.map((t, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{t.businessName}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{t.name}</td>
-                    <td><Badge color={{ Utility: 'blue', Marketing: 'purple', Authentication: 'green' }[t.category]}>{t.category}</Badge></td>
-                    <td><Badge>{t.status}</Badge></td>
-                    <td style={{ fontSize: 12, color: 'var(--muted)', maxWidth: 240 }}>{t.reason || '—'}</td>
-                    <td style={{ fontSize: 12, color: 'var(--muted)' }}>{t.submittedAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <Section title="Template submissions" style={{ padding: 0 }}>
+            <div style={{ marginTop: -16, marginLeft: -20, marginRight: -20, marginBottom: -20 }}>
+              {MOCK_TEMPLATES.map((t, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+                  borderTop: i === 0 ? '1px solid var(--hair, var(--border))' : '1px solid var(--hair-2, var(--border))',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t.businessName}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--f-mono, ui-monospace, monospace)', marginTop: 2 }}>{t.name}</div>
+                    {t.reason && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, fontStyle: 'italic' }}>{t.reason}</div>}
+                  </div>
+                  <Badge color={{ Utility: 'blue', Marketing: 'purple', Authentication: 'green' }[t.category]}>{t.category}</Badge>
+                  <Badge>{t.status}</Badge>
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', minWidth: 90, textAlign: 'right' }}>{t.submittedAt}</span>
+                </div>
+              ))}
+            </div>
+          </Section>
+        </>
       )}
 
-      {/* Meta API Health */}
+      {/* ── Meta API Health ─────────────────────────────────────────────── */}
       {tab === 'meta' && (
-        <div>
-          <div className="grid-3" style={{ marginBottom: 20 }}>
-            <div className="card card-sm">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Errors (last 24h)</div>
-              <div style={{ fontSize: 30, fontWeight: 500, color: 'var(--danger)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>{MOCK_API_ERRORS.length}</div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 18 }}>
+            <div className="card" style={{ padding: 18, borderLeft: '3px solid var(--danger)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Errors (last 24h)</div>
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 32, color: 'var(--danger)', lineHeight: 1.05 }}>{MOCK_API_ERRORS.length}</div>
             </div>
-            <div className="card card-sm">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Rate Limit Remaining</div>
-              <div style={{ fontSize: 30, fontWeight: 500, color: 'var(--success)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>87%</div>
+            <div className="card" style={{ padding: 18, borderLeft: '3px solid var(--success)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Rate limit remaining</div>
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 32, color: 'var(--success)', lineHeight: 1.05 }}>87%</div>
             </div>
-            <div className="card card-sm">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Last Webhook</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--success)' }}>2 min ago ✅</div>
+            <div className="card" style={{ padding: 18, borderLeft: '3px solid var(--brand)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Last webhook</div>
+              <div style={{ fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', fontWeight: 500, fontSize: 32, color: 'var(--brand)', lineHeight: 1.05 }}>2m</div>
             </div>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr>{['Time', 'Client', 'Error Code', 'Type', 'Message'].map(h => <th key={h}>{h}</th>)}</tr></thead>
-              <tbody>
-                {MOCK_API_ERRORS.map((e, i) => (
-                  <tr key={i}>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--muted)' }}>{e.time}</td>
-                    <td style={{ fontWeight: 600 }}>{e.client}</td>
-                    <td><code style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{e.code}</code></td>
-                    <td><Badge color="red">{e.type}</Badge></td>
-                    <td style={{ color: 'var(--muted)', fontSize: 13 }}>{e.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <Section title="Recent API errors" style={{ padding: 0 }}>
+            <div style={{ marginTop: -16, marginLeft: -20, marginRight: -20, marginBottom: -20 }}>
+              {MOCK_API_ERRORS.map((e, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+                  borderTop: i === 0 ? '1px solid var(--hair, var(--border))' : '1px solid var(--hair-2, var(--border))',
+                }}>
+                  <span style={{ fontFamily: 'var(--f-mono, ui-monospace, monospace)', fontSize: 12, color: 'var(--muted)', minWidth: 50 }}>{e.time}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{e.client}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{e.message}</div>
+                  </div>
+                  <code style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '3px 8px', borderRadius: 5, fontSize: 11.5, fontFamily: 'var(--f-mono, ui-monospace, monospace)' }}>{e.code}</code>
+                  <Badge color="red">{e.type}</Badge>
+                </div>
+              ))}
+            </div>
+          </Section>
+        </>
       )}
     </div>
   );

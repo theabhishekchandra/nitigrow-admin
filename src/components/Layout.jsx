@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../store/adminStore';
 import CommandBar from './CommandBar';
+import PlatformStatus from './PlatformStatus';
+import { Modal } from './ui';
+import useIdleTimeout from '../hooks/useIdleTimeout';
 
 /* ── Inline SVG icons (no external lib) ── */
 const Icon = ({ d, size = 16, strokeWidth = 1.5, ...p }) => (
@@ -20,6 +23,7 @@ const ICONS = {
   system:        'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
   announcements: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
   audit:         'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+  doc:           'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M9 13h6M9 17h6M9 9h2',
   menu:          'M4 6h16M4 12h16M4 18h16',
   close:         'M6 18L18 6M6 6l12 12',
   search:        'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
@@ -31,18 +35,46 @@ const ICONS = {
   payment:       'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
   warning:       'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
   ticket:        'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z',
+  chevron:       'M9 6l6 6-6 6',
+  cog:           'M12 9a3 3 0 100 6 3 3 0 000-6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
 };
 
-const NAV_ITEMS = [
-  { to: '/dashboard',     label: 'Dashboard',    iconKey: 'dashboard' },
-  { to: '/tenants',       label: 'Clients',      iconKey: 'tenants' },
-  { to: '/whatsapp',      label: 'WhatsApp',     iconKey: 'whatsapp' },
-  { to: '/support',       label: 'Support',      iconKey: 'support' },
-  { to: '/billing',       label: 'Billing',      iconKey: 'billing' },
-  { to: '/analytics',     label: 'Analytics',    iconKey: 'analytics' },
-  { to: '/system',        label: 'System',       iconKey: 'system' },
-  { to: '/announcements', label: 'Announcements',iconKey: 'announcements' },
-  { to: '/audit',         label: 'Audit Log',    iconKey: 'audit' },
+const NAV_GROUPS = [
+  {
+    key: 'operate',
+    label: null,
+    items: [
+      { to: '/dashboard', label: 'Dashboard', labelHi: 'डैशबोर्ड', iconKey: 'dashboard' },
+      { to: '/tenants',   label: 'Clients',   labelHi: 'क्लाइंट्स', iconKey: 'tenants' },
+      { to: '/whatsapp',  label: 'WhatsApp',  labelHi: 'व्हाट्सऐप', iconKey: 'whatsapp' },
+      { to: '/support',   label: 'Support',   labelHi: 'सपोर्ट',   iconKey: 'support' },
+    ],
+  },
+  {
+    key: 'money',
+    label: 'Money',
+    items: [
+      { to: '/billing',   label: 'Billing',   labelHi: 'बिलिंग',     iconKey: 'billing' },
+      { to: '/analytics', label: 'Analytics', labelHi: 'एनालिटिक्स', iconKey: 'analytics' },
+    ],
+  },
+  {
+    key: 'platform',
+    label: 'Platform',
+    items: [
+      { to: '/system',        label: 'System',        labelHi: 'सिस्टम',   iconKey: 'system' },
+      { to: '/announcements', label: 'Announcements', labelHi: 'घोषणाएं', iconKey: 'announcements' },
+    ],
+  },
+  {
+    key: 'trust',
+    label: 'Trust',
+    items: [
+      { to: '/audit',        label: 'Audit Log',    labelHi: 'ऑडिट लॉग', iconKey: 'audit' },
+      { to: '/feature-spec', label: 'Feature Spec', labelHi: 'फीचर्स',   iconKey: 'doc' },
+      { to: '/settings',     label: 'Settings',     labelHi: 'सेटिंग्स',  iconKey: 'cog' },
+    ],
+  },
 ];
 
 const NOTIF_ICON_MAP = { signup: 'signup', payment: 'payment', quality: 'warning', ticket: 'ticket' };
@@ -55,14 +87,31 @@ const MOCK_NOTIFS = [
 ];
 
 export default function Layout() {
-  const { admin, logout, theme, toggleTheme, sidebarCollapsed, toggleSidebar, openCommandBar, notifications, unreadCount, setNotifications, markAllRead } = useAdminStore();
+  const store = useAdminStore();
+  const { admin, logout, theme, toggleTheme, sidebarCollapsed, toggleSidebar, openCommandBar, notifications, unreadCount, setNotifications, markAllRead } = store;
+  const language = store.language;
   const navigate = useNavigate();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [idleWarning, setIdleWarning] = useState(false);
   const notifRef = useRef(null);
 
   useEffect(() => {
     if (notifications.length === 0) setNotifications(MOCK_NOTIFS);
   }, []);
+
+  useIdleTimeout({
+    onWarn: () => setIdleWarning(true),
+    onIdle: () => {
+      setIdleWarning(false);
+      logout();
+      navigate('/login?reason=idle');
+    },
+  });
+
+  const dismissIdleWarning = () => {
+    setIdleWarning(false);
+    window.dispatchEvent(new Event('mousemove'));
+  };
 
   useEffect(() => {
     const h = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCommandBar(); } };
@@ -77,77 +126,134 @@ export default function Layout() {
   }, []);
 
   const sw = sidebarCollapsed ? 64 : 240;
+  const isHi = language === 'hi';
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-      {/* ── Sidebar ── */}
-      <aside style={{ width: sw, background: 'var(--sidebar)', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'width .22s cubic-bezier(.4,0,.2,1)', overflow: 'hidden' }}>
+      {/* ── Sidebar wrapper (clips outer overflow only when needed) ── */}
+      <div style={{ position: 'relative', flexShrink: 0, width: sw, transition: 'width .22s cubic-bezier(.4,0,.2,1)' }}>
+        <aside style={{
+          width: sw, height: '100%',
+          background: 'var(--sidebar)', color: '#fff',
+          display: 'flex', flexDirection: 'column',
+          transition: 'width .22s cubic-bezier(.4,0,.2,1)',
+          overflow: 'visible',
+          position: 'relative',
+        }}>
 
-        {/* Logo */}
-        <div style={{ padding: '18px 0', borderBottom: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
-          {sidebarCollapsed
-            ? <div style={{ textAlign: 'center', fontWeight: 500, fontSize: 16, color: 'var(--accent-2)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>NG</div>
-            : <div style={{ padding: '0 20px' }}>
-                <div style={{ fontWeight: 500, fontSize: 22, color: 'var(--accent-2)', letterSpacing: '-0.01em', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)' }}>NitiGrow</div>
-                <div style={{ fontSize: 10, color: 'rgba(245,239,223,0.36)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 }}>Admin Panel</div>
-              </div>
-          }
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0', overflowX: 'hidden' }}>
-          {NAV_ITEMS.map(({ to, label, iconKey }) => (
-            <NavLink key={to} to={to} title={sidebarCollapsed ? label : undefined}
-              style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center',
-                gap: 10,
-                padding: sidebarCollapsed ? '11px 0' : '10px 14px',
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                color: isActive ? 'var(--sidebar-active-ink)' : 'var(--sidebar-text)',
-                background: isActive ? 'var(--sidebar-active)' : 'transparent',
-                borderLeft: isActive ? '3px solid var(--accent-2)' : '3px solid transparent',
-                borderRight: '3px solid transparent',
-                fontSize: 13.5,
-                fontWeight: isActive ? 600 : 400,
-                transition: 'all .14s',
-                borderRadius: '0 8px 8px 0',
-                marginRight: 8,
-                whiteSpace: 'nowrap',
-                textDecoration: 'none',
-              })}>
-              <Icon d={ICONS[iconKey]} size={16} style={{ flexShrink: 0 }} />
-              {!sidebarCollapsed && label}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Admin info + logout */}
-        <div style={{ padding: sidebarCollapsed ? '12px 0' : '12px 14px', borderTop: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
-          {sidebarCollapsed
-            ? <button onClick={() => { logout(); navigate('/login'); }} title="Sign Out"
-                style={{ width: '100%', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: 8, border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
-                <Icon d={ICONS.logout} size={15} />
-              </button>
-            : <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, color: '#FBF8F3' }}>
-                    {admin?.name?.[0]?.toUpperCase() || 'A'}
-                  </div>
-                  <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sidebar-active-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{admin?.name || 'Admin'}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(245,239,223,0.36)', textTransform: 'capitalize' }}>{(admin?.role || 'super_admin').replace('_', ' ')}</div>
+          {/* Logo */}
+          <div style={{ padding: '18px 0', borderBottom: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
+            {sidebarCollapsed
+              ? <div style={{ textAlign: 'center', fontWeight: 500, fontSize: 16, color: 'var(--accent-2)', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)', letterSpacing: '-0.01em' }}>NG</div>
+              : <div style={{ padding: '0 20px' }}>
+                  <div style={{ fontWeight: 500, fontSize: 22, color: 'var(--accent-2)', letterSpacing: '-0.01em', fontFamily: 'var(--f-display, "Fraunces", Georgia, serif)' }}>NitiGrow</div>
+                  <div style={{ fontSize: 9, color: 'var(--sidebar-text)', letterSpacing: '.18em', textTransform: 'uppercase', marginTop: 3, fontWeight: 600 }}>
+                    <span style={{ fontFamily: 'var(--f-hindi)' }}>व्यापार</span>
+                    <span> · ADMIN</span>
                   </div>
                 </div>
-                <button onClick={() => { logout(); navigate('/login'); }}
-                  style={{ width: '100%', background: 'rgba(239,68,68,0.1)', color: '#f87171', padding: '7px 0', borderRadius: 6, fontSize: 12, fontWeight: 600, border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Icon d={ICONS.logout} size={13} />
-                  Sign Out
+            }
+          </div>
+
+          {/* Nav */}
+          <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
+            {NAV_GROUPS.map((group, gi) => (
+              <div key={group.key} style={{ marginTop: gi === 0 ? 0 : 12 }}>
+                {!sidebarCollapsed && group.label && (
+                  <div style={{
+                    padding: '0 18px', marginTop: 6, marginBottom: 4,
+                    fontSize: 9.5, fontWeight: 700,
+                    letterSpacing: '.18em', textTransform: 'uppercase',
+                    color: 'var(--sidebar-text)',
+                  }}>
+                    {group.label}
+                  </div>
+                )}
+                {sidebarCollapsed && gi > 0 && (
+                  <div style={{ height: 1, background: 'var(--sidebar-border, rgba(245,239,223,0.08))', margin: '8px 12px' }} />
+                )}
+                {group.items.map(({ to, label, labelHi, iconKey }) => {
+                  const display = isHi && labelHi ? labelHi : label;
+                  return (
+                    <NavLink key={to} to={to} title={sidebarCollapsed ? display : undefined}
+                      style={({ isActive }) => ({
+                        display: 'flex', alignItems: 'center',
+                        gap: 10,
+                        padding: sidebarCollapsed ? '11px 0' : '10px 14px',
+                        justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                        color: isActive ? 'var(--sidebar-active-ink)' : 'var(--sidebar-text)',
+                        background: isActive ? 'var(--sidebar-active)' : 'transparent',
+                        borderLeft: isActive ? '3px solid var(--accent-2)' : '3px solid transparent',
+                        borderRight: '3px solid transparent',
+                        fontSize: 13.5,
+                        fontWeight: isActive ? 600 : 400,
+                        transition: 'all .14s',
+                        borderRadius: '0 8px 8px 0',
+                        marginRight: 8,
+                        whiteSpace: 'nowrap',
+                        textDecoration: 'none',
+                      })}>
+                      <Icon d={ICONS[iconKey]} size={16} style={{ flexShrink: 0 }} />
+                      {!sidebarCollapsed && (
+                        <span style={isHi ? { fontFamily: 'var(--f-hindi)' } : undefined}>{display}</span>
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+
+          {/* Admin info + logout */}
+          <div style={{ padding: sidebarCollapsed ? '12px 0' : '12px 14px', borderTop: '1px solid var(--sidebar-border, rgba(245,239,223,0.08))', flexShrink: 0 }}>
+            {sidebarCollapsed
+              ? <button onClick={() => { logout(); navigate('/login'); }} title="Sign Out"
+                  style={{ width: '100%', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: 8, border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                  <Icon d={ICONS.logout} size={15} />
                 </button>
-              </>
-          }
-        </div>
-      </aside>
+              : <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, color: '#FBF8F3' }}>
+                      {admin?.name?.[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sidebar-active-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{admin?.name || 'Admin'}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(245,239,223,0.36)', textTransform: 'capitalize' }}>{(admin?.role || 'super_admin').replace('_', ' ')}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => { logout(); navigate('/login'); }}
+                    style={{ width: '100%', background: 'rgba(239,68,68,0.1)', color: '#f87171', padding: '7px 0', borderRadius: 6, fontSize: 12, fontWeight: 600, border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Icon d={ICONS.logout} size={13} />
+                    Sign Out
+                  </button>
+                </>
+            }
+          </div>
+
+          {/* Collapse chevron — sits on sidebar's right edge */}
+          <button
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            style={{
+              position: 'absolute', right: -11, top: 48,
+              width: 22, height: 22, borderRadius: '50%',
+              background: 'var(--sidebar)',
+              border: '1px solid var(--sidebar-border, rgba(245,239,223,0.18))',
+              color: 'var(--sidebar-text)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.22)',
+              zIndex: 30,
+              padding: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-2)'; e.currentTarget.style.borderColor = 'var(--accent-2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--sidebar-text)'; e.currentTarget.style.borderColor = 'var(--sidebar-border, rgba(245,239,223,0.18))'; }}
+          >
+            <Icon d={ICONS.chevron} size={11} strokeWidth={2} style={{ transform: sidebarCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform .2s' }} />
+          </button>
+        </aside>
+      </div>
 
       {/* ── Main content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
@@ -159,6 +265,9 @@ export default function Layout() {
           <button onClick={toggleSidebar} className="btn-icon btn-ghost" title="Toggle sidebar" style={{ flexShrink: 0, cursor: 'pointer' }}>
             <Icon d={sidebarCollapsed ? ICONS.menu : ICONS.close} size={18} />
           </button>
+
+          {/* Platform status pill — before search */}
+          <PlatformStatus />
 
           {/* Global search trigger */}
           <button onClick={openCommandBar}
@@ -227,6 +336,26 @@ export default function Layout() {
       </div>
 
       <CommandBar />
+
+      <Modal open={idleWarning} onClose={dismissIdleWarning} title="About to sign you out" width={460}>
+        <p style={{ color: 'var(--text-2, var(--muted))', marginBottom: 22, lineHeight: 1.65, fontSize: 14 }}>
+          For security, this session expires after 30 minutes of inactivity. You'll be signed out in 60 seconds.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => { setIdleWarning(false); logout(); navigate('/login'); }}
+          >
+            Sign out now
+          </button>
+          <button
+            className="btn-primary btn-sm"
+            onClick={dismissIdleWarning}
+          >
+            Stay signed in
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
