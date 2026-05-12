@@ -23,6 +23,7 @@ const ICONS = {
   system:        'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
   announcements: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
   audit:         'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+  shield:        'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   doc:           'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M9 13h6M9 17h6M9 9h2',
   menu:          'M4 6h16M4 12h16M4 18h16',
   close:         'M6 18L18 6M6 6l12 12',
@@ -70,9 +71,10 @@ const NAV_GROUPS = [
     key: 'trust',
     label: 'Trust',
     items: [
-      { to: '/audit',        label: 'Audit Log',    labelHi: 'ऑडिट लॉग', iconKey: 'audit' },
-      { to: '/feature-spec', label: 'Feature Spec', labelHi: 'फीचर्स',   iconKey: 'doc' },
-      { to: '/settings',     label: 'Settings',     labelHi: 'सेटिंग्स',  iconKey: 'cog' },
+      { to: '/audit',                  label: 'Audit Log',     labelHi: 'ऑडिट लॉग',     iconKey: 'audit' },
+      { to: '/security/ip-allowlist',  label: 'IP Allowlist',  labelHi: 'IP अनुमति',    iconKey: 'shield' },
+      { to: '/feature-spec',           label: 'Feature Spec',  labelHi: 'फीचर्स',       iconKey: 'doc' },
+      { to: '/settings',               label: 'Settings',      labelHi: 'सेटिंग्स',      iconKey: 'cog' },
     ],
   },
 ];
