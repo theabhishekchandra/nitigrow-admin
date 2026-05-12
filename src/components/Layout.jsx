@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../store/adminStore';
+import api from '../services/api';
 import CommandBar from './CommandBar';
 import PlatformStatus from './PlatformStatus';
 import { Modal } from './ui';
@@ -81,14 +82,42 @@ const NAV_GROUPS = [
   },
 ];
 
-const NOTIF_ICON_MAP = { signup: 'signup', payment: 'payment', quality: 'warning', ticket: 'ticket' };
+const NOTIF_ICON_MAP = { signup: 'signup', payment: 'payment', quality: 'warning', ticket: 'ticket', lead: 'inbox' };
 
-const MOCK_NOTIFS = [
-  { id: 1, title: 'New signup: Riya Fashions',        message: 'Starter plan — trial started',          time: '2 min ago',  read: false, type: 'signup' },
-  { id: 2, title: 'Failed payment: TechBridge',       message: '₹2,499 — retry scheduled',             time: '18 min ago', read: false, type: 'payment' },
-  { id: 3, title: 'WhatsApp quality dropped',         message: 'EduFirst dropped to Yellow',           time: '1 hr ago',   read: true,  type: 'quality' },
-  { id: 4, title: 'Support ticket: Urgent',           message: 'Campaign not sending — CloudStore',    time: '2 hr ago',   read: true,  type: 'ticket' },
-];
+// Notifications are sourced from `GET /api/admin/contact-submissions?status=new`.
+// We persist the IDs the admin has already pulled into the dropdown in
+// localStorage so the badge counts only genuinely-new leads, not every open
+// submission that's still in the inbox awaiting triage.
+const NOTIF_SEEN_KEY = 'ng_admin_seen_notifs';
+const NOTIF_POLL_MS = 60_000;
+const NOTIF_TOPIC_LABEL = {
+  trial: 'free-trial request',
+  demo: 'demo request',
+  pricing: 'pricing query',
+  migration: 'BSP migration enquiry',
+  enterprise: 'enterprise enquiry',
+  partnership: 'partnership enquiry',
+  support: 'support request',
+  other: 'inquiry',
+};
+
+const loadSeenNotifs = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(NOTIF_SEEN_KEY)) || []); }
+  catch { return new Set(); }
+};
+const saveSeenNotifs = (set) => {
+  try { localStorage.setItem(NOTIF_SEEN_KEY, JSON.stringify([...set].slice(-200))); }
+  catch { /* quota full — best effort */ }
+};
+
+const fmtNotifTime = (iso) => {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000)      return 'just now';
+  if (diff < 3_600_000)   return `${Math.floor(diff / 60_000)} min ago`;
+  if (diff < 86_400_000)  return `${Math.floor(diff / 3_600_000)} hr ago`;
+  return `${Math.floor(diff / 86_400_000)} d ago`;
+};
 
 export default function Layout() {
   const store = useAdminStore();
@@ -99,9 +128,46 @@ export default function Layout() {
   const [idleWarning, setIdleWarning] = useState(false);
   const notifRef = useRef(null);
 
+  const fetchNotifs = useCallback(async () => {
+    try {
+      const { data } = await api.get('/contact-submissions', { params: { status: 'new', limit: 20 } });
+      const seen = loadSeenNotifs();
+      const items = (data.data || []).map((s) => ({
+        id: s._id,
+        title: `New ${NOTIF_TOPIC_LABEL[s.topic] || s.topic}: ${s.businessName || s.name}`,
+        message: (s.message && s.message.trim()) ? s.message.slice(0, 90) : s.email,
+        time: fmtNotifTime(s.createdAt),
+        type: 'lead',
+        read: seen.has(s._id),
+        href: '/leads',
+      }));
+      setNotifications(items);
+    } catch {
+      // 401 is handled by the axios interceptor (auto-logout);
+      // other errors (network, 403 from IP allowlist) we swallow to keep the bell quiet.
+    }
+  }, [setNotifications]);
+
   useEffect(() => {
-    if (notifications.length === 0) setNotifications(MOCK_NOTIFS);
-  }, []);
+    fetchNotifs();
+    const t = setInterval(fetchNotifs, NOTIF_POLL_MS);
+    return () => clearInterval(t);
+  }, [fetchNotifs]);
+
+  const handleMarkAllRead = useCallback(() => {
+    const seen = loadSeenNotifs();
+    notifications.forEach((n) => seen.add(n.id));
+    saveSeenNotifs(seen);
+    markAllRead();
+  }, [notifications, markAllRead]);
+
+  const handleNotifClick = (n) => {
+    setShowNotifs(false);
+    const seen = loadSeenNotifs();
+    seen.add(n.id);
+    saveSeenNotifs(seen);
+    if (n.href) navigate(n.href);
+  };
 
   useIdleTimeout({
     onWarn: () => setIdleWarning(true),
@@ -290,7 +356,7 @@ export default function Layout() {
 
             {/* Notifications */}
             <div style={{ position: 'relative' }} ref={notifRef}>
-              <button onClick={() => { setShowNotifs(v => !v); if (!showNotifs) markAllRead(); }} className="btn-icon btn-ghost" style={{ position: 'relative', cursor: 'pointer' }}>
+              <button onClick={() => { setShowNotifs(v => !v); if (!showNotifs) handleMarkAllRead(); }} className="btn-icon btn-ghost" style={{ position: 'relative', cursor: 'pointer' }}>
                 <Icon d={ICONS.bell} size={18} />
                 {unreadCount > 0 && (
                   <span style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'var(--danger)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
@@ -303,22 +369,37 @@ export default function Layout() {
                 <div className="animate-in" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 320, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', zIndex: 200 }}>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontWeight: 700, fontSize: 13 }}>Notifications</span>
-                    <button onClick={markAllRead} style={{ background: 'transparent', border: 'none', fontSize: 11, color: 'var(--brand)', padding: '0 4px', cursor: 'pointer' }}>Mark all read</button>
+                    <button onClick={handleMarkAllRead} style={{ background: 'transparent', border: 'none', fontSize: 11, color: 'var(--brand)', padding: '0 4px', cursor: 'pointer' }}>Mark all read</button>
                   </div>
                   <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                     {notifications.length === 0
                       ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>All caught up</div>
                       : notifications.map((n) => (
-                          <div key={n.id} style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'var(--accent-2-soft, var(--brand-bg))', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                          <button
+                            key={n.id}
+                            onClick={() => handleNotifClick(n)}
+                            style={{
+                              width: '100%', textAlign: 'left',
+                              padding: '10px 16px',
+                              borderBottom: '1px solid var(--border)',
+                              background: n.read ? 'transparent' : 'var(--accent-2-soft, var(--brand-bg))',
+                              display: 'flex', gap: 10, alignItems: 'flex-start',
+                              cursor: 'pointer', border: 'none',
+                              borderRadius: 0,
+                              transition: 'background .12s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2, var(--paper-2, var(--bg)))'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = n.read ? 'transparent' : 'var(--accent-2-soft, var(--brand-bg))'; }}
+                          >
                             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--brand)' }}>
                               <Icon d={ICONS[NOTIF_ICON_MAP[n.type]] || ICONS.bell} size={13} />
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>{n.title}</div>
-                              <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 1 }}>{n.message}</div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</div>
+                              <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</div>
                               <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 3 }}>{n.time}</div>
                             </div>
-                          </div>
+                          </button>
                         ))
                     }
                   </div>
